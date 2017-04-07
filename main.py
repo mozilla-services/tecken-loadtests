@@ -129,6 +129,19 @@ def run(input_dir, url):
                 )
             ),
         )
+        total_time_everything_else = (
+            sum(one['time']) -
+            sum(one['downloads']['time']) -
+            sum(one['cache_lookups']['time'])
+        )
+        print(
+            'Total time NOT downloading or querying cache  ',
+            time_fmt(total_time_everything_else)
+        )
+        print(
+            'Average time NOT downloading or querying cache',
+            time_fmt(total_time_everything_else / len(one['time']))
+        )
     files = [os.path.join(input_dir, x) for x in os.listdir(input_dir)]
     random.shuffle(files)
     try:
