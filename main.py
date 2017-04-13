@@ -7,6 +7,7 @@ import copy
 import random
 
 import requests
+from requests.exceptions import ConnectionError
 
 
 def sizeof_fmt(num, suffix='B'):
@@ -142,6 +143,39 @@ def run(input_dir, url):
             'Average time NOT downloading or querying cache',
             time_fmt(total_time_everything_else / len(one['time']))
         )
+
+    times = []
+
+    def total_duration():
+        if not times:
+            return 'na'
+        seconds = time.time() - times[0]
+        if seconds < 100:
+            return '{:.1f} seconds'.format(seconds)
+        else:
+            return '{:.1f} minutes'.format(seconds / 60)
+
+    def speed_per_minute():
+        if not times:
+            return 'na'
+        # XXX the speed should be based on the last 10, not all
+        t = time.time() - times[0]
+        return '{:.1f}'.format(len(times) * 60 / t)
+
+    def post_patiently(*args, **kwargs):
+        attempts = kwargs.pop('attempts', 0)
+        try:
+            t0 = time.time()
+            req = requests.post(url, json=payload)
+            r = req.json()
+            t1 = time.time()
+            return (t1, t0), r
+        except ConnectionError:
+            if attempts > 3:
+                raise
+            time.sleep(1)
+            return post_patiently(*args, attempts=attempts + 1, **kwargs)
+
     files = [os.path.join(input_dir, x) for x in os.listdir(input_dir)]
     random.shuffle(files)
     try:
@@ -150,19 +184,24 @@ def run(input_dir, url):
                 payload = json.loads(f.read())
                 payload['debug'] = True
                 print(
-                    ' {} of {} '.format(
+                    ' {} of {} -- {} requests/minute ({}) '.format(
                         format(i + 1, ','),
                         format(files_count, ','),
+                        speed_per_minute(),
+                        total_duration(),
                     ).center(80, '=')
                 )
                 print(payload)
-                t0 = time.time()
-                req = requests.post(url, json=payload)
-                r = req.json()
-                t1 = time.time()
+
+                (t1, t0), r = post_patiently(url, json=payload)
+                # t0 = time.time()
+                # req = requests.post(url, json=payload)
+                # r = req.json()
+                # t1 = time.time()
                 # print(r)
                 debug = r['debug']
                 debug['modules'].pop('stacks_per_module')
+                times.append(t0)
                 debug['loader_time'] = t1 - t0
                 all_debugs.append(debug)
                 print()
