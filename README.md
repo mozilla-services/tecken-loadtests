@@ -1,22 +1,59 @@
 Ability to bombard [Mozilla Symbol Server](https://github.com/mozilla/tecken)'s
-Symbolication service with tonnes of stacks as stored in `.json` files.
+Symbolication service with tonnes of stacks as stored in `.json` files
+and the Download service with tonnes of symbol URL requests.
 
-## To Use
+
+## To Use (for Downloads)
 
 1. Download or clone this repo.
 
 2. Run a Python that has
 [`requests`](http://requests.readthedocs.io/en/master/) installed.
 
-3. Type something like `python main.py stacks http://localhost:8000`
-assuming you have the symbolcation server running at `localhost:8000`
+3. Type something like `python download.py symbol-queries-groups.csv http://localhost:8000`
+assuming you have the download server running at `localhost:8000`
+
+4. Sit and watch it or kill it with `Ctrl-C`. If you kill it before it
+finishes (finishing is likely to take hours) stats are printed out with
+what's been accomplished so far.
+
+## How To Interpret The Results (for Downloads)
+
+The results look like this after running for a while:
+
+```
+JOBS DONE SO FAR     256
+RAN FOR              146.663s
+AVERAGE RATE         1.75 requests/s
+
+STATUS CODE               COUNT          MEDIAN         AVERAGE         % RIGHT
+404                         238          0.540s          0.564s           97.90
+302                          18          0.541s          0.558s          100.00
+```
+
+That means that 238 URLs were sent in. In 97.9% of the cases, tecken also
+found that the symbol file didn't exist (compared with what was the case
+when the csv file was made).
+And there were 18 requests where the symbol existed and was able to
+redirect to an absolute S3 URL.
+
+
+## To Use (for Symbolication)
+
+1. Download or clone this repo.
+
+2. Run a Python that has
+[`requests`](http://requests.readthedocs.io/en/master/) installed.
+
+3. Type something like `python symbolicate.py stacks http://localhost:8000`
+assuming you have the symbolication server running at `localhost:8000`
 
 4. Sit and watch it or kill it with `Ctrl-C`. If you kill it before it
 finishes (finishing is likely to take hours) stats are printed out with
 what's been accomplished so far.
 
 
-## Hot To Interpret The Results
+## How To Interpret The Results (for Symbolication)
 
 When you finish (or kill it unfinished) it will print out something
 that looks like this:
@@ -109,3 +146,22 @@ Final Cache Speed       219.0MB/s
 This script picks sample JSON stacks to send in randomly. Every time.
 That means that if you start it, kill it and start again, it's unlikely
 that you'll be able to benefit much from the cache of the first run.
+
+
+## How the `symbol-queries-groups.csv` file was made
+
+First of all, you need to enable logging on the
+`org.mozilla.crash-stats.symbols-public` and
+`org.mozilla.crash-stats.symbols-private` S3 buckets. Make the logging
+go to the bucket `peterbe-symbols-playground-deleteme-in-2018` and for
+each make the prefix be `public-symbols/` and `private-symbols/`
+respectively.
+
+The file `symbol-queries-groups.csv` was created by running
+`generate-csv-logs.py` a bunch of ways:
+
+1. `AWS_ACCESS_KEY=... AWS_SECRET_ACCESS_KEY=... python generate-csv-logs.py download`
+
+2. `python generate-csv-logs.py summorize`
+
+3. `python generate-csv-logs.py group`
