@@ -89,12 +89,26 @@ def _stats(r):
     return s[len(s)//2], avg, (sdsq/(len(r)-1 or 1))**.5
 
 
-def run(csv_file, base_url):
+def run(base_url, csv_file, socorro_missing_csv_file=None):
     uris_count = wc_file(csv_file)
     print(format(uris_count, ','), 'LINES')
     print('\n')
 
     jobs_done = []
+
+    code_files_and_ids = {}
+    if socorro_missing_csv_file:
+        with open(socorro_missing_csv_file) as f:
+            reader = csv.reader(f)
+            header = next(reader)
+            _expect = ['debug_file', 'debug_id', 'code_file', 'code_id']
+            assert header == _expect, header
+            for row in reader:
+                debug_file, debug_id, code_file, code_id = row
+                code_files_and_ids[(debug_file, debug_id)] = (
+                    code_file,
+                    code_id,
+                )
 
     def print_total_jobs_done(finished):
         print('\n')
@@ -183,7 +197,7 @@ def run(csv_file, base_url):
         attempts = kwargs.pop('attempts', 0)
         try:
             t0 = time.time()
-            req = requests.get(url, allow_redirects=False)
+            req = requests.get(url, **kwargs, allow_redirects=False)
             t1 = time.time()
             return (t1, t0), req
         except ConnectionError:
@@ -191,6 +205,19 @@ def run(csv_file, base_url):
                 raise
             time.sleep(1)
             return get_patiently(*args, attempts=attempts + 1, **kwargs)
+
+    def head_patiently(*args, **kwargs):
+        attempts = kwargs.pop('attempts', 0)
+        try:
+            t0 = time.time()
+            req = requests.head(url, **kwargs, allow_redirects=False)
+            t1 = time.time()
+            return (t1, t0), req
+        except ConnectionError:
+            if attempts > 3:
+                raise
+            time.sleep(1)
+            return head_patiently(*args, attempts=attempts + 1, **kwargs)
 
     with open(csv_file) as f:
         reader = csv.reader(f)
@@ -217,8 +244,16 @@ def run(csv_file, base_url):
             ).center(80, '=')
             print(out, end='')
             print('\r' * len(out), end='')
+            params = {}
+            symbol, debugid, filename = uri.split('/')
 
-            (t1, t0), r = get_patiently(url)
+            key = (symbol, debugid)
+            if key in code_files_and_ids:
+                code_file, code_id = code_files_and_ids[key]
+                params['code_file'] = code_file
+                params['code_id'] = code_id
+            # (t1, t0), r = get_patiently(url, params=params)
+            (t1, t0), r = head_patiently(url, params=params)
 
             times.append(t0)
             jobs_done.append({
