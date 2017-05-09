@@ -245,7 +245,11 @@ def run(base_url, csv_file, socorro_missing_csv_file=None):
             print(out, end='')
             print('\r' * len(out), end='')
             params = {}
-            symbol, debugid, filename = uri.split('/')
+            try:
+                symbol, debugid, filename = uri.split('/')
+            except ValueError:
+                print('BAD uri: {!r}'.format(uri))
+                continue
 
             key = (symbol, debugid)
             if key in code_files_and_ids:

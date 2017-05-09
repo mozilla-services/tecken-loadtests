@@ -167,13 +167,17 @@ def run(input_dir, url):
         try:
             t0 = time.time()
             req = requests.post(url, json=payload)
+            if req.status_code == 502:
+                print("OH NO!! 502 Error")
+                raise ConnectionError('a hack')
+            assert req.status_code == 200, req.status_code
             r = req.json()
             t1 = time.time()
             return (t1, t0), r
         except ConnectionError:
             if attempts > 3:
                 raise
-            time.sleep(1)
+            time.sleep(2)
             return post_patiently(*args, attempts=attempts + 1, **kwargs)
 
     files = [os.path.join(input_dir, x) for x in os.listdir(input_dir)]
@@ -191,7 +195,7 @@ def run(input_dir, url):
                         total_duration(),
                     ).center(80, '=')
                 )
-                print(payload)
+                print(json.dumps(payload))
 
                 (t1, t0), r = post_patiently(url, json=payload)
                 # t0 = time.time()
@@ -202,8 +206,27 @@ def run(input_dir, url):
                 debug = r['debug']
                 debug['modules'].pop('stacks_per_module')
                 times.append(t0)
-                debug['loader_time'] = t1 - t0
+                # debug['loader_time'] = t1 - t0
                 all_debugs.append(debug)
+                print(
+                    '{} downloads ({}, {}); '
+                    '{} cache lookups ({}, {} -- {}/lookup, {}/s)'.format(
+                        debug['downloads']['count'],
+                        time_fmt(debug['downloads']['time']),
+                        sizeof_fmt(debug['downloads']['size']),
+                        debug['cache_lookups']['count'],
+                        time_fmt(debug['cache_lookups']['time']),
+                        sizeof_fmt(debug['cache_lookups']['size']),
+                        time_fmt(
+                            debug['cache_lookups']['time'] /
+                            debug['cache_lookups']['count']
+                        ),
+                        sizeof_fmt(
+                            debug['cache_lookups']['size'] /
+                            debug['cache_lookups']['time']
+                        )
+                    )
+                )
                 print()
                 # if i>1:
                 #     break
