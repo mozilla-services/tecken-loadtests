@@ -1,10 +1,13 @@
 from __future__ import print_function  # in case you use py2
 
+import datetime
 import os
 import time
 import json
 import copy
 import random
+import tempfile
+from urllib.parse import urlparse
 
 import requests
 from requests.exceptions import ConnectionError
@@ -84,7 +87,7 @@ def _stats(r):
 def run(input_dir, url):
     files_count = wc_dir(input_dir)
     print(format(files_count, ','), 'FILES')
-    print('\n')
+    print()
     all_debugs = []
 
     def print_total_debugs(finished):
@@ -113,7 +116,7 @@ def run(input_dir, url):
         print('IN CONCLUSION...')
         if one['downloads']['count']:
             print(
-                'Final Download Speed'.ljust(P),
+                'Final Average Download Speed'.ljust(P),
                 '{}/s'.format(
                     sizeof_fmt(
                         sum(one['downloads']['size']) /
@@ -122,7 +125,7 @@ def run(input_dir, url):
                 ),
             )
         print(
-            'Final Cache Speed'.ljust(P),
+            'Final Average Cache Speed'.ljust(P),
             '{}/s'.format(
                 sizeof_fmt(
                     sum(one['cache_lookups']['size']) /
@@ -155,18 +158,37 @@ def run(input_dir, url):
         else:
             return '{:.1f} minutes'.format(seconds / 60)
 
-    def speed_per_minute():
+    def speed_per_second(last=10):
         if not times:
             return 'na'
-        # XXX the speed should be based on the last 10, not all
-        t = time.time() - times[0]
-        return '{:.1f}'.format(len(times) * 60 / t)
+        if len(times) > last:
+            t = time.time() - times[-last]
+            L = last
+        else:
+            t = time.time() - times[0]
+            L = len(times)
+        return '{:.1f}'.format(L / t)
+
+    def speed_per_minute(last=10):
+        if not times:
+            return 'na'
+        if len(times) > last:
+            t = time.time() - times[-last]
+            L = last
+        else:
+            t = time.time() - times[0]
+            L = len(times)
+        return '{:.1f}'.format(L * 60 / t)
 
     def post_patiently(*args, **kwargs):
         attempts = kwargs.pop('attempts', 0)
         try:
             t0 = time.time()
-            req = requests.post(url, json=payload)
+            options = {}
+            parsed = urlparse(url)
+            if parsed.scheme == 'https' and parsed.netloc == 'prod.tecken.dev':
+                options['verify'] = False
+            req = requests.post(url, json=payload, **options)
             if req.status_code == 502:
                 print("OH NO!! 502 Error")
                 raise ConnectionError('a hack')
@@ -182,38 +204,56 @@ def run(input_dir, url):
 
     files = [os.path.join(input_dir, x) for x in os.listdir(input_dir)]
     random.shuffle(files)
+
+    now = datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
+    logfile_path = os.path.join(
+        tempfile.gettempdir(),
+        'symbolication-' + now + '.log'
+    )
+    print('All verbose logging goes into:', logfile_path)
+    print()
     try:
         for i, fp in enumerate(files):
-            with open(fp) as f:
+            with open(fp) as f, open(logfile_path, 'a') as logfile:
                 payload = json.loads(f.read())
                 payload['debug'] = True
-                print(
-                    ' {} of {} -- {} requests/minute ({}) '.format(
-                        format(i + 1, ','),
-                        format(files_count, ','),
-                        speed_per_minute(),
-                        total_duration(),
-                    ).center(80, '=')
-                )
-                print(json.dumps(payload))
+
+                print("PAYLOAD (as JSON)", file=logfile)
+                print('-' * 79, file=logfile)
+                print(json.dumps(payload), file=logfile)
 
                 (t1, t0), r = post_patiently(url, json=payload)
+                # print(r['knownModules'])
                 # t0 = time.time()
                 # req = requests.post(url, json=payload)
                 # r = req.json()
                 # t1 = time.time()
                 # print(r)
+                print(file=logfile)
+                print("RESPONSE (as JSON)", file=logfile)
+                print('-' * 79, file=logfile)
+                print(json.dumps(r), file=logfile)
+                print('-' * 79, file=logfile)
+                for i, combo in enumerate(payload['memoryMap']):
+                    print(combo, '-->', r['knownModules'][i], file=logfile)
+                print('=' * 79, file=logfile)
+                print(file=logfile)
+
                 debug = r['debug']
                 debug['modules'].pop('stacks_per_module')
                 times.append(t0)
                 # debug['loader_time'] = t1 - t0
                 all_debugs.append(debug)
-                print(
-                    '{} downloads ({}, {}); '
-                    '{} cache lookups ({}, {} -- {}/lookup, {}/s)'.format(
+                _downloads = (
+                    '{} downloads ({}, {})'.format(
                         debug['downloads']['count'],
                         time_fmt(debug['downloads']['time']),
                         sizeof_fmt(debug['downloads']['size']),
+                    )
+                )
+                _cache_lookups = (
+                    '{} cache lookups ({}, {} -- {}/lookup, {}/s)'.format(
+
                         debug['cache_lookups']['count'],
                         time_fmt(debug['cache_lookups']['time']),
                         sizeof_fmt(debug['cache_lookups']['size']),
@@ -227,10 +267,18 @@ def run(input_dir, url):
                         )
                     )
                 )
-                print()
-                # if i>1:
-                #     break
-                time.sleep(0.1)
+                print(_downloads.ljust(35), _cache_lookups)
+                out = (
+                    ' {} of {} -- {} requests/minute ({}) '.format(
+                        format(i + 1, ','),
+                        format(files_count, ','),
+                        speed_per_minute(),
+                        total_duration(),
+                    ).center(80, '=')
+                )
+                print(out, end='')
+                print('\r' * len(out), end='')
+                time.sleep(0.05)
     except KeyboardInterrupt:
         print_total_debugs(False)
         return 1

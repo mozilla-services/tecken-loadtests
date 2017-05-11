@@ -206,19 +206,6 @@ def run(base_url, csv_file, socorro_missing_csv_file=None):
             time.sleep(1)
             return get_patiently(*args, attempts=attempts + 1, **kwargs)
 
-    def head_patiently(*args, **kwargs):
-        attempts = kwargs.pop('attempts', 0)
-        try:
-            t0 = time.time()
-            req = requests.head(url, **kwargs, allow_redirects=False)
-            t1 = time.time()
-            return (t1, t0), req
-        except ConnectionError:
-            if attempts > 3:
-                raise
-            time.sleep(1)
-            return head_patiently(*args, attempts=attempts + 1, **kwargs)
-
     with open(csv_file) as f:
         reader = csv.reader(f)
         next(reader)  # header
@@ -256,8 +243,7 @@ def run(base_url, csv_file, socorro_missing_csv_file=None):
                 code_file, code_id = code_files_and_ids[key]
                 params['code_file'] = code_file
                 params['code_id'] = code_id
-            # (t1, t0), r = get_patiently(url, params=params)
-            (t1, t0), r = head_patiently(url, params=params)
+            (t1, t0), r = get_patiently(url, params=params)
 
             times.append(t0)
             jobs_done.append({
