@@ -21,7 +21,7 @@ what's been accomplished so far.
 looks for `code_file` and `code_id`. For example:
 
 ```
-python download.py http://localhost:8000 symbol-queries-groups.csv latest.csv
+python download.py http://localhost:8000 downloading/symbol-queries-groups.csv downloading/socorro-missing.csv
 ```
 
 That second file is expected to have the following header:
