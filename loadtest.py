@@ -86,7 +86,8 @@ def test_starts(args):
     assert len(found_jobs) < len(notfound_jobs)
     SYMBOLS = found_jobs + notfound_jobs[:len(found_jobs)]
     random.shuffle(SYMBOLS)
-    q('END OF STARTS')
+
+    q('END OF STARTS', len(STACKS), 'stacks', len(SYMBOLS), 'symbols')
 
 
 @setup()
