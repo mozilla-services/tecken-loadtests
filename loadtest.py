@@ -139,7 +139,7 @@ async def scenario_symbolication(session):
             assert res['result'] == 'OK'
     except Exception as e:
         q(e)
-
+        raise
 
 # all scenarii are coroutines
 @scenario(70)
