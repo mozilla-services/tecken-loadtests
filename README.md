@@ -1,4 +1,4 @@
-Ability to bombard [Mozilla Symbol Server](https://github.com/mozilla/tecken)'s
+Ability to bombard [Mozilla Symbol Server](https://github.com/mozilla-services/tecken)'s
 Symbolication service with tonnes of stacks as stored in `.json` files
 and the Download service with tonnes of symbol URL requests.
 
