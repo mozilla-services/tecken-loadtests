@@ -21,7 +21,7 @@ what's been accomplished so far.
 looks for `code_file` and `code_id`. For example:
 
 ```
-python download.py http://localhost:8000 symbol-queries-groups.csv latest.csv
+python download.py http://localhost:8000 downloading/symbol-queries-groups.csv downloading/socorro-missing.csv
 ```
 
 That second file is expected to have the following header:
@@ -177,3 +177,11 @@ The file `symbol-queries-groups.csv` was created by running
 2. `python generate-csv-logs.py summorize`
 
 3. `python generate-csv-logs.py group`
+
+
+## Molotov Testing
+
+To start a [molotov testing](https://molotov.readthedocs.io/) there's a
+`loadtest.py` script. Basic usage:
+
+    molotov --max-runs 10 -cx loadtest.py
