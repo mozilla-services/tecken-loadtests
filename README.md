@@ -177,3 +177,11 @@ The file `symbol-queries-groups.csv` was created by running
 2. `python generate-csv-logs.py summorize`
 
 3. `python generate-csv-logs.py group`
+
+
+## Molotov Testing
+
+To start a [molotov testing](https://molotov.readthedocs.io/) there's a
+`loadtest.py` script. Basic usage:
+
+    molotov --max-runs 10 -cx loadtest.py
