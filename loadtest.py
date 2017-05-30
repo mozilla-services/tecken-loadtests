@@ -16,8 +16,8 @@ from urllib.parse import urlencode
 
 from molotov import scenario, setup, global_setup, teardown, global_teardown
 
-import q
-q('IMPORTING')
+# import q
+# q('IMPORTING')
 
 URL_SERVER = os.getenv('URL_SERVER', 'http://localhost:8000')
 assert not URL_SERVER.endswith('/')
@@ -30,13 +30,13 @@ _SOCORRO_MISSING_CSV = 'downloading/socorro-missing.csv'
 _SYMBOL_QUERIES_CSV = 'downloading/symbol-queries-groups.csv'
 
 
-@global_setup()
-def test_starts(args):
+# @global_setup()
+# def test_starts(args):
+if 1:
     """ This functions is called before anything starts.
 
     Notice that it's not a coroutine.
     """
-    q('IN test_starts')
     # Populate the STACKS list with a list of paths to all stacks files
     STACKS = glob(os.path.join(_STACKS_DIR, '*.json'))
     assert STACKS
@@ -65,6 +65,9 @@ def test_starts(args):
     jobs = []
     for job in jobs_raw:
         s3_uri = job[0]
+        if 'HTTP/1.1' in s3_uri:
+            # A bad line in the CSV
+            continue
         uri = '/'.join(s3_uri.split('/')[-3:])
         try:
             symbol, debugid, filename = uri.split('/')
@@ -79,6 +82,11 @@ def test_starts(args):
                 'code_id': code_id,
             }))
         status_code = int(job[1])
+        if status_code == 403:
+            # When a line in the CSV says 403, it's just because it's
+            # an attempt to open a URL on a private bucket.
+            # In Tecken, it doesn't do that distinction.
+            status_code = 404
         jobs.append((uri, status_code))
 
     found_jobs = [x for x in jobs if x[1] == 200]
@@ -86,8 +94,6 @@ def test_starts(args):
     assert len(found_jobs) < len(notfound_jobs)
     SYMBOLS = found_jobs + notfound_jobs[:len(found_jobs)]
     random.shuffle(SYMBOLS)
-
-    q('END OF STARTS', len(STACKS), 'stacks', len(SYMBOLS), 'symbols')
 
 
 @setup()
@@ -125,36 +131,23 @@ def test_ends():
 
 @scenario(30)
 async def scenario_symbolication(session):
-    q('START scenario_symbolication')
-    try:
-        q('# stacks', len(STACKS))
-        with open(STACKS.pop()) as f:
-            stack = json.load(f)
-        url = URL_SERVER + '/symbolicate/v4'
-        q('stack: {}'.format(stack))
+    with open(STACKS.pop()) as f:
+        stack = json.load(f)
+    url = URL_SERVER + '/symbolicate/v4'
 
-        async with session.post(url, json=stack) as resp:
-            assert resp.status == 200
-            res = await resp.json()
-            print(res)
-            assert res['result'] == 'OK'
-    except Exception as e:
-        q(e)
-        raise
+    async with session.post(url, json=stack) as resp:
+        assert resp.status == 200
+        res = await resp.json()
+        assert 'knownModules' in res
+        assert 'symbolicatedStacks' in res
 
-# all scenarii are coroutines
+
 @scenario(70)
-async def scenario_two(session): # XXX rename
-    q('START scenario_two')
-    try:
-        q('# SYMBOLS', len(SYMBOLS))
-        job = SYMBOLS.pop()
-        url = URL_SERVER + '/'.format(job['uri'])
-        q('url: {}'.format(url))
-        async with session.get(url) as resp:
-            assert resp.status == 200
-            res = await resp.json()
-            print(res)
-    except Exception as e:
-        q(e)
-        raise
+async def scenario_download(session):
+    job = SYMBOLS.pop()
+    url = URL_SERVER + '/{}'.format(job[0])
+    async with session.get(url) as resp:
+        assert resp.status == job[1], 'Expected {!r} got {!r}'.format(
+            job[1],
+            resp.status,
+        )
