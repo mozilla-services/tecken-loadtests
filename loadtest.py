@@ -14,13 +14,11 @@ import random
 from glob import glob
 from urllib.parse import urlencode
 
-from molotov import scenario, setup, global_setup, teardown, global_teardown
-
-# import q
-# q('IMPORTING')
+import molotov
 
 URL_SERVER = os.getenv('URL_SERVER', 'http://localhost:8000')
 assert not URL_SERVER.endswith('/')
+print('URL_SERVER:', URL_SERVER)
 
 STACKS = []
 SYMBOLS = []
@@ -96,7 +94,7 @@ if 1:
     random.shuffle(SYMBOLS)
 
 
-@setup()
+@molotov.setup()
 async def worker_starts(worker_id, args):
     """ This function is called once per worker.
 
@@ -111,30 +109,30 @@ async def worker_starts(worker_id, args):
     return {'headers': headers}
 
 
-@teardown()
-def worker_ends(worker_id):
-    """ This functions is called when the worker is done.
-
-    Notice that it's not a coroutine.
-    """
-    pass
-
-
-@global_teardown()
-def test_ends():
-    """ This functions is called when everything is done.
-
-    Notice that it's not a coroutine.
-    """
-    pass
+# @molotov.teardown()
+# def worker_ends(worker_id):
+#     """ This functions is called when the worker is done.
+#
+#     Notice that it's not a coroutine.
+#     """
+#     pass
 
 
-@scenario(30)
+# @molotov.global_teardown()
+# def test_ends():
+#     """ This functions is called when everything is done.
+#
+#     Notice that it's not a coroutine.
+#     """
+#     pass
+
+
+@molotov.scenario(40)
 async def scenario_symbolication(session):
     with open(STACKS.pop()) as f:
         stack = json.load(f)
     url = URL_SERVER + '/symbolicate/v4'
-
+    # print('Symbolication URL:', url)
     async with session.post(url, json=stack) as resp:
         assert resp.status == 200
         res = await resp.json()
@@ -142,10 +140,11 @@ async def scenario_symbolication(session):
         assert 'symbolicatedStacks' in res
 
 
-@scenario(70)
+@molotov.scenario(60)
 async def scenario_download(session):
     job = SYMBOLS.pop()
     url = URL_SERVER + '/{}'.format(job[0])
+    # print('Download URL:', url)
     async with session.get(url) as resp:
         assert resp.status == job[1], 'Expected {!r} got {!r}'.format(
             job[1],

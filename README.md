@@ -185,3 +185,9 @@ To start a [molotov testing](https://molotov.readthedocs.io/) there's a
 `loadtest.py` script. Basic usage:
 
     molotov --max-runs 10 -cx loadtest.py
+
+By default the base URL for this will be `http://localhost:8000`. If you
+want to override that, change the environment variable `URL_SERVER`.
+For example:
+
+    URL_SERVER=https://symbols.dev.mozaws.net molotov --max-runs 10 -cx loadtest.py
