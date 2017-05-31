@@ -243,8 +243,9 @@ def run(input_dir, url):
                     )
                 )
                 _cache_lookups = (
-                    '{} cache lookups ({} -- {}/lookup)'.format(
+                    '{} cache lookup{} ({} -- {}/lookup)'.format(
                         debug['cache_lookups']['count'],
+                        debug['cache_lookups']['count'] > 1 and 's' or '',
                         time_fmt(debug['cache_lookups']['time']),
                         time_fmt(
                             debug['cache_lookups']['time'] /
