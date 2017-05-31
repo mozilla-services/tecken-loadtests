@@ -124,15 +124,6 @@ def run(input_dir, url):
                     )
                 ),
             )
-        print(
-            'Final Average Cache Speed'.ljust(P),
-            '{}/s'.format(
-                sizeof_fmt(
-                    sum(one['cache_lookups']['size']) /
-                    sum(one['cache_lookups']['time'])
-                )
-            ),
-        )
         total_time_everything_else = (
             sum(one['time']) -
             sum(one['downloads']['time']) -
@@ -234,8 +225,8 @@ def run(input_dir, url):
                 print('-' * 79, file=logfile)
                 print(json.dumps(r), file=logfile)
                 print('-' * 79, file=logfile)
-                for i, combo in enumerate(payload['memoryMap']):
-                    print(combo, '-->', r['knownModules'][i], file=logfile)
+                for j, combo in enumerate(payload['memoryMap']):
+                    print(combo, '-->', r['knownModules'][j], file=logfile)
                 print('=' * 79, file=logfile)
                 print(file=logfile)
 
@@ -252,19 +243,13 @@ def run(input_dir, url):
                     )
                 )
                 _cache_lookups = (
-                    '{} cache lookups ({}, {} -- {}/lookup, {}/s)'.format(
-
+                    '{} cache lookups ({} -- {}/lookup)'.format(
                         debug['cache_lookups']['count'],
                         time_fmt(debug['cache_lookups']['time']),
-                        sizeof_fmt(debug['cache_lookups']['size']),
                         time_fmt(
                             debug['cache_lookups']['time'] /
                             debug['cache_lookups']['count']
                         ),
-                        sizeof_fmt(
-                            debug['cache_lookups']['size'] /
-                            debug['cache_lookups']['time']
-                        )
                     )
                 )
                 print(_downloads.ljust(35), _cache_lookups)
