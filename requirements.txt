@@ -1,2 +1,1 @@
-requests
-molotov
+git+git://github.com/loads/molotov.git
