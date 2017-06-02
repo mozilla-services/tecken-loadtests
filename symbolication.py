@@ -259,10 +259,11 @@ def run(input_dir, url):
                 )
                 print(_downloads.ljust(35), _cache_lookups)
                 out = (
-                    ' {} of {} -- {} requests/minute ({}) '.format(
+                    ' {} of {} -- {} requests/minute ({} req/s) ({}) '.format(
                         format(i + 1, ','),
                         format(files_count, ','),
                         speed_per_minute(),
+                        speed_per_second(),
                         total_duration(),
                     ).center(80, '=')
                 )
