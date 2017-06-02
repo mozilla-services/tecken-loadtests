@@ -196,7 +196,7 @@ def run(input_dir, url):
     files = [os.path.join(input_dir, x) for x in os.listdir(input_dir)]
     random.shuffle(files)
 
-    now = datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
+    now = datetime.datetime.now().strftime('%Y%m%d')
     logfile_path = os.path.join(
         tempfile.gettempdir(),
         'symbolication-' + now + '.log'
@@ -243,8 +243,12 @@ def run(input_dir, url):
                     )
                 )
                 _cache_lookups = (
-                    '{} cache lookup{} ({} -- {}/lookup)'.format(
+                    '{} ({}) cache lookup{} ({} -- {}/lookup)'.format(
                         debug['cache_lookups']['count'],
+                        (
+                            debug['modules']['count'] -
+                            debug['downloads']['count']
+                        ),
                         debug['cache_lookups']['count'] > 1 and 's' or '',
                         time_fmt(debug['cache_lookups']['time']),
                         time_fmt(
