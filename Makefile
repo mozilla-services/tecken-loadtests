@@ -1,4 +1,4 @@
-.PHONY: symbolicate-locally download-locally symbolicate-dev symbolicate-stage
+.PHONY: symbolicate-locally symbolicate-dev symbolicate-stage download-locally download-dev download-stage
 
 help:
 	@echo "Welcome to the tecken-loadtest\n"
@@ -7,6 +7,8 @@ help:
 	@echo "  symbolicate-dev        Do a lot of symbolications on Dev server"
 	@echo "  symbolicate-stage      Do a lot of symbolications on Stage server"
 	@echo "  download-locally       Do a lot of symbol downloads locally"
+	@echo "  download-dev           Do a lot of symbol downloads on Dev server"
+	@echo "  download-stage         Do a lot of symbol downloads on Stage server"
 
 
 symbolicate-locally:
@@ -20,3 +22,9 @@ symbolicate-stage:
 
 download-locally:
 	python download.py http://localhost:8000 downloading/symbol-queries-groups.csv downloading/socorro-missing.csv
+
+download-dev:
+	python download.py https://symbols.dev.mozaws.net downloading/symbol-queries-groups.csv downloading/socorro-missing.csv
+
+download-stage:
+	python download.py https://symbols.stage.mozaws.net downloading/symbol-queries-groups.csv downloading/socorro-missing.csv
