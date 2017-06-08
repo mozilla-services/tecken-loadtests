@@ -6,14 +6,14 @@ Depends on reading the ./stacks/ directory,
 '''
 
 import csv
-import molotov
 import os
 import json
 import random
 from glob import glob
 from urllib.parse import urlencode
-from molotov.util import set_var, get_var
 
+import molotov
+from molotov.util import set_var, get_var
 
 
 @molotov.global_setup()
@@ -26,12 +26,11 @@ def test_starts(args):
     socorro_missing_csv = 'downloading/socorro-missing.csv'
     symbol_queries_csv = 'downloading/symbol-queries-groups.csv'
     # Populate the STACKS list with a list of paths to all stacks files
-    set_var('url_server', os.getenv('URL_SERVER', 'http://localhost:8000'
-))
+    set_var('url_server', os.getenv('URL_SERVER', 'http://localhost:8000'))
     stacks = glob(os.path.join(stacks_dir, '*.json'))
     random.shuffle(stacks)
     set_var('stacks', stacks)
-    
+
     # Populate ALL possible (and relevant URLs) for doing symbol downloads
     code_files_and_ids = {}
     with open(socorro_missing_csv) as f:
@@ -99,24 +98,6 @@ async def worker_starts(worker_id, args):
         # Empty for now
     }
     return {'headers': headers}
-
-
-@molotov.teardown()
-def worker_ends(worker_id):
-    """ This functions is called when the worker is done.
-
-    Notice that it's not a coroutine.
-    """
-    pass
-
-
-@molotov.global_teardown()
-def test_ends():
-    """ This functions is called when everything is done.
-
-    Notice that it's not a coroutine.
-    """
-    pass
 
 
 @molotov.scenario(40)
