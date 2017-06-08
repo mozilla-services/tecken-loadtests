@@ -211,13 +211,13 @@ def run(base_url, csv_file, socorro_missing_csv_file=None):
         next(reader)  # header
         jobs = list(reader)
 
+    # jobs=[x for x in jobs if x[1]=='200']
     random.shuffle(jobs)
 
     try:
         for i, job in enumerate(jobs):
             s3_uri = job[0]
             status_code = job[1]
-            # private = job[2]
 
             uri = '/'.join(s3_uri.split('/')[-3:])
             url = urljoin(base_url, uri)
