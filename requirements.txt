@@ -1,1 +1,2 @@
+# Let's remember to switch this to a released PyPI version once it's out
 git+git://github.com/loads/molotov.git
