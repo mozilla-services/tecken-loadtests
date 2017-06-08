@@ -1,11 +1,9 @@
-"""Molotov testing Tecken.
+# Molotov testing Tecken.
 
-
+'''
 Depends on reading the ./stacks/ directory,
 ./downloading/symbol-queries-groups.csv and ./downloading/socorro-missing.csv
-
-"""
-# import sys; sys.path.append('.')
+'''
 
 import csv
 import os
@@ -15,34 +13,27 @@ from glob import glob
 from urllib.parse import urlencode
 
 import molotov
-
-URL_SERVER = os.getenv('URL_SERVER', 'http://localhost:8000')
-assert not URL_SERVER.endswith('/')
-print('URL_SERVER:', URL_SERVER)
-
-STACKS = []
-SYMBOLS = []
-
-_STACKS_DIR = 'stacks'
-_SOCORRO_MISSING_CSV = 'downloading/socorro-missing.csv'
-_SYMBOL_QUERIES_CSV = 'downloading/symbol-queries-groups.csv'
+from molotov.util import set_var, get_var
 
 
-# @global_setup()
-# def test_starts(args):
-if 1:
+@molotov.global_setup()
+def test_starts(args):
     """ This functions is called before anything starts.
 
     Notice that it's not a coroutine.
     """
+    stacks_dir = 'stacks'
+    socorro_missing_csv = 'downloading/socorro-missing.csv'
+    symbol_queries_csv = 'downloading/symbol-queries-groups.csv'
     # Populate the STACKS list with a list of paths to all stacks files
-    STACKS = glob(os.path.join(_STACKS_DIR, '*.json'))
-    assert STACKS
-    random.shuffle(STACKS)
+    set_var('url_server', os.getenv('URL_SERVER', 'http://localhost:8000'))
+    stacks = glob(os.path.join(stacks_dir, '*.json'))
+    random.shuffle(stacks)
+    set_var('stacks', stacks)
 
     # Populate ALL possible (and relevant URLs) for doing symbol downloads
     code_files_and_ids = {}
-    with open(_SOCORRO_MISSING_CSV) as f:
+    with open(socorro_missing_csv) as f:
         reader = csv.reader(f)
         header = next(reader)
         _expect = ['debug_file', 'debug_id', 'code_file', 'code_id']
@@ -53,7 +44,7 @@ if 1:
                 code_file,
                 code_id,
             )
-    with open(_SYMBOL_QUERIES_CSV) as f:
+    with open(symbol_queries_csv) as f:
         reader = csv.reader(f)
         next(reader)  # header
         jobs_raw = list(reader)
@@ -70,7 +61,6 @@ if 1:
         try:
             symbol, debugid, filename = uri.split('/')
         except ValueError:
-            # print('BAD uri: {!r}'.format(uri))
             continue
         key = (symbol, debugid)
         if key in code_files_and_ids:
@@ -92,6 +82,7 @@ if 1:
     assert len(found_jobs) < len(notfound_jobs)
     SYMBOLS = found_jobs + notfound_jobs[:len(found_jobs)]
     random.shuffle(SYMBOLS)
+    set_var('symbols', SYMBOLS)
 
 
 @molotov.setup()
@@ -109,30 +100,11 @@ async def worker_starts(worker_id, args):
     return {'headers': headers}
 
 
-# @molotov.teardown()
-# def worker_ends(worker_id):
-#     """ This functions is called when the worker is done.
-#
-#     Notice that it's not a coroutine.
-#     """
-#     pass
-
-
-# @molotov.global_teardown()
-# def test_ends():
-#     """ This functions is called when everything is done.
-#
-#     Notice that it's not a coroutine.
-#     """
-#     pass
-
-
 @molotov.scenario(40)
 async def scenario_symbolication(session):
-    with open(STACKS.pop()) as f:
+    with open(get_var('stacks').pop()) as f:
         stack = json.load(f)
-    url = URL_SERVER + '/symbolicate/v4'
-    # print('Symbolication URL:', url)
+    url = get_var('url_server') + '/symbolicate/v4'
     async with session.post(url, json=stack) as resp:
         assert resp.status == 200
         res = await resp.json()
@@ -142,9 +114,8 @@ async def scenario_symbolication(session):
 
 @molotov.scenario(60)
 async def scenario_download(session):
-    job = SYMBOLS.pop()
-    url = URL_SERVER + '/{}'.format(job[0])
-    # print('Download URL:', url)
+    job = get_var('symbols').pop()
+    url = get_var('url_server') + '/{}'.format(job[0])
     async with session.get(url) as resp:
         assert resp.status == job[1], 'Expected {!r} got {!r}'.format(
             job[1],
