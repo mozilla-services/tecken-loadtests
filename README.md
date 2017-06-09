@@ -191,3 +191,25 @@ want to override that, change the environment variable `URL_SERVER`.
 For example:
 
     URL_SERVER=https://symbols.dev.mozaws.net molotov --max-runs 10 -cx loadtest.py
+
+
+## Make Symbol Zips
+
+To load test Tecken with realistic `.zip` uploads, you can use the Socorro
+API to query its logs of recently uploaded symbols. The `make-symbol-zip.py`
+script will look at the logs, pick a recent one (uploaded by Mozilla RelEng)
+and then download each and every file from S3 and make a `.zip` file in
+your temp directory (e.g. `/tmp/massive-symbol-zips/symbols-2017-06-09T04_01_45.zip`).
+
+To do this yourself, first go to: https://crash-stats.mozilla.com/api/tokens/
+and generate an API token that has the "View all Symbol Uploads" permission.
+
+Then, copy that API token and run:
+
+    AUTH_TOKEN=XXXXXXXXX python make-symbol-zip.py
+
+In the stdout, it should say where it was saved.
+
+Now you can use that to upload. For example:
+
+    curl -X POST -H "Auth-Token: YYYYYYY" --form myfile.zip=@/tmp/massive-symbol-zips/symbols-2017-06-09T04_01_45.zip http://localhost:8000/upload/
