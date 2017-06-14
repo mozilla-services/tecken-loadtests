@@ -195,21 +195,50 @@ For example:
 
 ## Make Symbol Zips
 
-To load test Tecken with realistic `.zip` uploads, you can use the Socorro
-API to query its logs of recently uploaded symbols. The `make-symbol-zip.py`
-script will look at the logs, pick a recent one (uploaded by Mozilla RelEng)
+To load test Tecken with realistic `.zip` uploads, you can simulate the
+uploads sent to Socorro in the past.
+
+The `make-symbol-zip.py` script will look at the logs, pick a
+recent one (uploaded by Mozilla RelEng)
 and then download each and every file from S3 and make a `.zip` file in
 your temp directory (e.g. `/tmp/massive-symbol-zips/symbols-2017-06-09T04_01_45.zip`).
 
-To do this yourself, first go to: https://crash-stats.mozilla.com/api/tokens/
-and generate an API token that has the "View all Symbol Uploads" permission.
+Simply run it like this::
 
-Then, copy that API token and run:
-
-    AUTH_TOKEN=XXXXXXXXX python make-symbol-zip.py
+    python make-symbol-zip.py
 
 In the stdout, it should say where it was saved.
 
 Now you can use that to upload. For example:
 
     curl -X POST -H "Auth-Token: YYYYYYY" --form myfile.zip=@/tmp/massive-symbol-zips/symbols-2017-06-09T04_01_45.zip http://localhost:8000/upload/
+
+
+## Test Symbol Upload
+
+First you have to make a bunch of `.zip` files. See the section above on
+"Make Symbol Zips". That script uses the same default save directory
+as `upload-symbol-zips.py`. This script picks random `.zip` files from
+that directory where they're temporarily saved. This script will actually
+go ahead and make the upload.
+
+First try:
+
+    python upload-symbol-zips.py --help
+
+By default, it will upload 1 random `.zip` file to
+`http://localhost:8000/upload`. All the uploads are synchronous.
+
+This does require an ``Auth-Token`` (aka. "API token") in the environment
+called `AUTH_TOKEN`. Either export it or use like this:
+
+    AUTH_TOKEN=7e353c4f34644ef6ba1cfb02b3c3662d python upload-symbol-zips.py
+
+If you do the testing using `localhost:8000` but actually depend on uploading
+the to an S3 bucket that is on the Internet, the uploads can become really
+slow. Especially on a home broad band. To limit it to `.zip` files that
+aren't too large you can add `--max-size` option. E.g.
+
+    python upload-symbol-zips.py --max-size 100m
+
+That will pick (randomly) only from `.zip` files that are 100Mb or less.

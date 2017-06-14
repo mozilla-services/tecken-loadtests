@@ -1,17 +1,20 @@
 """The purpose of this file is to generate large symbol.zip files
 based on looking at logs in
 https://crash-stats.mozilla.com/api/UploadedSymbols/
-which requires an API token.
+However, since all files in there are public, a bunch of these queries
+have already been made and saved into ./symbols-uploaded/.
 """
 
-import datetime
 import tempfile
 import os
 import random
 import time
 import zipfile
-from urllib.parse import urlencode
+import glob
+import gzip
+import json
 
+import click
 import requests
 import deco
 
@@ -51,18 +54,18 @@ def download(uri, save_dir, store):
     store[uri] = (fullpath, t1 - t0, int(response.headers['Content-Length']))
 
 
-def _get_index(auth_token, save_dir):
-    url = 'https://crash-stats.mozilla.com/api/UploadedSymbols/'
-    today = datetime.datetime.utcnow().strftime('%Y-%m-%d')
-    url += '?' + urlencode({
-        'start_date': today,
-        'end_date': today,
-        'user_search': 'coop',  # RelEng
-    })
-    response = requests.get(url, headers={'Auth-Token': auth_token})
-    assert response.status_code == 200, response.status_code
-    all_uploads = response.json()['hits']
-    # index = random.randint(0, len(all_uploads))
+def _get_index(save_dir, days=0):
+    # Pick a random file from the ./symbols-uploaded/ directory
+    symbols_uploaded_dir = os.path.join(
+        os.path.dirname(__file__),
+        'symbols-uploaded'
+    )
+    symbols_uploaded_file = random.choice(
+        glob.glob(os.path.join(symbols_uploaded_dir, '*.json.gz'))
+    )
+    with gzip.open(symbols_uploaded_file, 'rb') as f:
+        uploaded = json.loads(f.read().decode('utf-8'))
+    all_uploads = uploaded['hits']
     possible = {}
     for i, bundle in enumerate(all_uploads):
         wouldbe_name = _make_filepath(save_dir, bundle)
@@ -80,7 +83,7 @@ def _get_index(auth_token, save_dir):
     if not preferred:
         preferred = random.choice(list(possible.keys()))
     else:
-        preferred = int(preferred)
+        preferred = int(preferred) - 1
     print(
         'Picking {} ({})'.format(
             possible[preferred][0],
@@ -109,12 +112,21 @@ def _make_filepath(save_dir, bundle):
     )
 
 
-def run(*args):
-    auth_token = os.environ['AUTH_TOKEN']
-    save_dir = os.path.join(tempfile.gettempdir(), 'massive-symbol-zips')
+_default_save_dir = os.path.join(tempfile.gettempdir(), 'massive-symbol-zips')
+
+
+@click.command()
+@click.option(
+    '--save-dir',
+    help='Where all .zip files get saved (default {})'.format(
+        _default_save_dir,
+    )
+)
+def run(save_dir=None):
+    save_dir = save_dir or _default_save_dir
     if not os.path.isdir(save_dir):
-        os.mkdir(save_dir)
-    bundle = _get_index(auth_token, save_dir)
+        os.makedirs(save_dir, exist_ok=True)
+    bundle = _get_index(save_dir)
     all_symbol_urls = []
     all_symbol_urls.extend(bundle['content'].get('added', []))
     all_symbol_urls.extend(bundle['content'].get('existed', []))
@@ -173,5 +185,4 @@ def run(*args):
 
 
 if __name__ == '__main__':
-    import sys
-    sys.exit(run(*sys.argv[1:]))
+    run()

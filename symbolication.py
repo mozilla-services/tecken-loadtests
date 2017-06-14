@@ -114,7 +114,7 @@ def run(input_dir, url):
 
         print('\n')
         print('IN CONCLUSION...')
-        if one['downloads']['count']:
+        if one['downloads']['count'] and one['downloads']['time']:
             print(
                 'Final Average Download Speed'.ljust(P),
                 '{}/s'.format(
@@ -180,9 +180,15 @@ def run(input_dir, url):
             if parsed.scheme == 'https' and parsed.netloc == 'prod.tecken.dev':
                 options['verify'] = False
             req = requests.post(url, json=payload, **options)
-            if req.status_code == 502:
+            if req.status_code == 502 and 'localhost:8000' in url:
+                # When running against, http://localhost:8000 and the Django
+                # server restarts, you get a 502 error. Just try again
+                # a little later.
                 print("OH NO!! 502 Error")
                 raise ConnectionError('a hack')
+            if req.status_code != 200:
+                print('URL:', url)
+                print('PAYLOAD:', json.dumps(payload))
             assert req.status_code == 200, req.status_code
             r = req.json()
             t1 = time.time()
