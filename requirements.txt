@@ -1,5 +1,5 @@
 click==6.7
-requests==2.17.3
+requests==2.18.1
 #molotov==1.1
 git+git://github.com/loads/molotov.git
 deco==0.5.2
