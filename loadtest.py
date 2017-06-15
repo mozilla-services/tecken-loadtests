@@ -116,8 +116,12 @@ async def scenario_symbolication(session):
 async def scenario_download(session):
     job = get_var('symbols').pop()
     url = get_var('url_server') + '/{}'.format(job[0])
-    async with session.get(url) as resp:
-        assert resp.status == job[1], 'Expected {!r} got {!r}'.format(
-            job[1],
-            resp.status,
-        )
+    async with session.get(url, allow_redirects=False) as resp:
+        # If we get a 302, that means that the symbol server did find
+        # the symbol and it's redirecting us to its true source. In
+        # other words, it exists in S3.
+        # When the fixtures were created, it was recorded as `job[1]` here.
+        # However, symbols might have changed since the fixtures were
+        # created so we can't fully bank on the results matching.
+        # So we'll just be happy to note that it worked.
+        assert resp.status in (302, 404), resp.status
