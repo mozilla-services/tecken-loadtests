@@ -4,6 +4,7 @@ import os
 import time
 import random
 import csv
+import statistics
 from urllib.parse import urljoin
 from collections import defaultdict
 
@@ -58,35 +59,12 @@ def appendify(source, dest):
             dest[key].append(value)
 
 
-def printify(objects, p=30, n=10, prefix=''):
-    for key in sorted(objects):
-        value = objects[key]
-        if isinstance(value, dict):
-            printify(value, p=p, n=n, prefix=prefix + key + '.')
-        else:
-            formatter = number_fmt
-            if key == 'size':
-                formatter = sizeof_fmt
-            elif key.endswith('time'):
-                formatter = time_fmt
-            median, average, stddev = _stats(value)
-            print(
-                (prefix + key).ljust(p),
-                formatter(sum(value)).rjust(n),
-                formatter(average).rjust(n),
-                formatter(median).rjust(n),
-                formatter(stddev).rjust(n),
-            )
-
-
-def _stats(r):
-    # returns the median, average and standard deviation of a sequence
-    tot = sum(r)
-    avg = tot/len(r)
-    sdsq = sum([(i-avg)**2 for i in r])
-    s = list(r)
-    s.sort()
-    return s[len(s)//2], avg, (sdsq/(len(r)-1 or 1))**.5
+def _stats(numbers):
+    return (
+        statistics.median(numbers),
+        statistics.mean(numbers),
+        statistics.stdev(numbers),
+    )
 
 
 def run(base_url, csv_file, socorro_missing_csv_file=None):
@@ -137,27 +115,38 @@ def run(base_url, csv_file, socorro_missing_csv_file=None):
             )
 
             by_got_matched[got].append(matched)
-            by_got_times[got].append(job['time'])
+            by_got_times[got].append((job['time'], job['internal_time']))
 
-        N = 15
+        N = 13
+        P = ' '
         print()
         print(
-            'STATUS CODE'.ljust(N),
-            'COUNT'.rjust(N),
-            'MEDIAN'.rjust(N),
-            'AVERAGE'.rjust(N),
-            '% RIGHT'.rjust(N),
+            'STATUS CODE'.ljust(N, P),
+            'COUNT'.rjust(N, P),
+            'MEDIAN'.rjust(N, P),
+            '(INTERNAL)'.rjust(N, P),
+            'AVERAGE'.rjust(N, P),
+            '(INTERNAL)'.rjust(N, P),
+            '% RIGHT'.rjust(N, P),
         )
         for key in by_got_times:
-            median, average, std = _stats(by_got_times[key])
+            request_times = [x[0] for x in by_got_times[key]]
+            if len(request_times) <= 2:
+                print('Too few datapoints for {!r}'.format(key))
+                continue
+            median, average, std = _stats(request_times)
+            internal_times = [x[1] for x in by_got_times[key] if x[1]]
+            imedian, iaverage, istd = _stats(internal_times)
             total = len(by_got_matched[key])
             right = 100 * sum([x for x in by_got_matched[key] if x]) / total
             print(
                 str(key).ljust(N),
-                str(len(by_got_times[key])).rjust(N),
-                time_fmt(median).rjust(N),
-                time_fmt(average).rjust(N),
-                number_fmt(right).rjust(N),
+                str(len(by_got_times[key])).rjust(N, P),
+                time_fmt(median).rjust(N, P),
+                time_fmt(imedian).rjust(N, P),
+                time_fmt(average).rjust(N, P),
+                time_fmt(iaverage).rjust(N, P),
+                number_fmt(right).rjust(N, P),
             )
 
     times = []
@@ -222,15 +211,10 @@ def run(base_url, csv_file, socorro_missing_csv_file=None):
             uri = '/'.join(s3_uri.split('/')[-3:])
             url = urljoin(base_url, uri)
 
-            out = ' {} of {} -- {} requests/s -- {} requests/min ({}) '.format(
-                format(i + 1, ','),
-                format(uris_count, ','),
-                speed_per_second(),
-                speed_per_minute(),
-                total_duration(),
-            ).center(80, '=')
-            print(out, end='')
-            print('\r' * len(out), end='')
+            if url.endswith(' HTTP/1.1'):
+                # bad CSV parsing apparently
+                url = url[:-len(' HTTP/1.1')]
+
             params = {}
             try:
                 symbol, debugid, filename = uri.split('/')
@@ -243,13 +227,34 @@ def run(base_url, csv_file, socorro_missing_csv_file=None):
                 code_file, code_id = code_files_and_ids[key]
                 params['code_file'] = code_file
                 params['code_id'] = code_id
-            (t1, t0), r = get_patiently(url, params=params)
+            (t1, t0), r = get_patiently(
+                url,
+                params=params,
+                headers={
+                    'debug': 'true',
+                }
+            )
+            try:
+                internal_time = float(r.headers['debug-time'])
+            except KeyError:
+                internal_time = None
+
+            out = ' {} of {} -- {} requests/s -- {} requests/min ({}) '.format(
+                format(i + 1, ','),
+                format(uris_count, ','),
+                speed_per_second(),
+                speed_per_minute(),
+                total_duration(),
+            ).center(80, '=')
+            print(out, end='')
+            print('\r' * len(out), end='')
 
             times.append(t0)
             jobs_done.append({
                 'expect': int(status_code),
                 'got': r.status_code,
                 'time': t1 - t0,
+                'internal_time': internal_time
             })
     except KeyboardInterrupt:
         print_total_jobs_done(False)

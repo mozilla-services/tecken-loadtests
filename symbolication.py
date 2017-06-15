@@ -175,7 +175,11 @@ def run(input_dir, url):
         attempts = kwargs.pop('attempts', 0)
         try:
             t0 = time.time()
-            options = {}
+            options = {
+                'headers': {
+                    'Debug': 'true',
+                },
+            }
             parsed = urlparse(url)
             if parsed.scheme == 'https' and parsed.netloc == 'prod.tecken.dev':
                 options['verify'] = False
@@ -213,7 +217,6 @@ def run(input_dir, url):
         for i, fp in enumerate(files):
             with open(fp) as f, open(logfile_path, 'a') as logfile:
                 payload = json.loads(f.read())
-                payload['debug'] = True
 
                 print("PAYLOAD (as JSON)", file=logfile)
                 print('-' * 79, file=logfile)

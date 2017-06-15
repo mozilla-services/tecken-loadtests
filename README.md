@@ -34,20 +34,27 @@ debug_file,debug_id,code_file,code_id
 The results look like this after running for a while:
 
 ```
-JOBS DONE SO FAR     256
-RAN FOR              146.663s
-AVERAGE RATE         1.75 requests/s
+JOBS DONE SO FAR     302
+RAN FOR              173.957s
+AVERAGE RATE         1.74 requests/s
 
-STATUS CODE               COUNT          MEDIAN         AVERAGE         % RIGHT
-404                         238          0.540s          0.564s           97.90
-302                          18          0.541s          0.558s          100.00
+STATUS CODE           COUNT        MEDIAN    (INTERNAL)       AVERAGE    (INTERNAL)       % RIGHT
+404                     274        0.644s        0.651s        0.564s        0.660s         95.62
+302                      28        0.657s        0.639s        0.693s        0.663s        100.00
 ```
 
-That means that 238 URLs were sent in. In 97.9% of the cases, tecken also
+That means that 302 URLs were sent in. In 95.62% of the cases, Tecken also
 found that the symbol file didn't exist (compared with what was the case
-when the csv file was made).
-And there were 18 requests where the symbol existed and was able to
+when the CSV file was made).
+And there were 28 requests where the symbol existed and was able to
 redirect to an absolute S3 URL.
+
+The `(INTERNAL)` is the median and average of the seconds it took the *server*,
+internally, to make the lookup. So if a look up took 0.6 seconds and
+0.5 seconds internally, it means there was an 0.1 second overhead of
+making the request to Tecken. In that case, the 0.5 is basically purely
+the time it takes Tecken to talk to S3. But mind you, Tecken can iterate
+over a list of S3 sources. It's not possible to tell if it
 
 
 ## To Use (for Symbolication)
