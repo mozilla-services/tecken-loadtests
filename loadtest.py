@@ -100,24 +100,25 @@ async def worker_starts(worker_id, args):
     return {'headers': headers}
 
 
-@molotov.scenario(40)
-async def scenario_symbolication(session):
-    with open(get_var('stacks').pop()) as f:
-        stack = json.load(f)
-    url = get_var('url_server') + '/symbolicate/v4'
-    async with session.post(url, json=stack) as resp:
-        assert resp.status == 200
-        res = await resp.json()
-        assert 'knownModules' in res
-        assert 'symbolicatedStacks' in res
+# @molotov.scenario(40)
+# async def scenario_symbolication(session):
+#     with open(get_var('stacks').pop()) as f:
+#         stack = json.load(f)
+#     url = get_var('url_server') + '/symbolicate/v4'
+#     async with session.post(url, json=stack) as resp:
+#         assert resp.status == 200
+#         res = await resp.json()
+#         assert 'knownModules' in res
+#         assert 'symbolicatedStacks' in res
 
 
 @molotov.scenario(60)
 async def scenario_download(session):
     job = get_var('symbols').pop()
     url = get_var('url_server') + '/{}'.format(job[0])
-    async with session.get(url) as resp:
-        assert resp.status == job[1], 'Expected {!r} got {!r}'.format(
-            job[1],
-            resp.status,
-        )
+    async with session.get(url, allow_redirects=False) as resp:
+        print(resp.status, 'EXPECTED', job[1])
+        # assert resp.status == job[1], 'Expected {!r} got {!r}'.format(
+        #     job[1],
+        #     resp.status,
+        # )
