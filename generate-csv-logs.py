@@ -221,17 +221,21 @@ def download():
     bucket_name = 'peterbe-symbols-playground-deleteme-in-2018'
     bucket = conn.lookup(bucket_name)
     print(bucket)
-    prefixes = (('public', 'public-symbols/'), ('private', 'private-symbols/'))
+    # prefixes = (('public', 'symbols-public/'), ('private', 'private-symbols/'))
+    prefixes = (('public', 'symbols-public/'),)
     for name, prefix in prefixes:
         for key in bucket.get_all_keys(prefix=prefix):
+            print('KEY', key)
             if key.name.endswith('/'):
                 continue
             fp = 'downloadlogs/' + key.name + '.log'
             if os.path.isfile(fp):
                 continue
-            with open(fp, 'w') as f:
-                key.get_contents_to_file(f)
-                print('DOWNLOADED', fp)
+            key.get_contents_to_filename(fp)
+            print('DOWNLOADED', fp)
+            # with open(fp, 'w') as f:
+            #     key.get_contents_to_file(f)
+            #     print('DOWNLOADED', fp)
 
 
 if __name__ == '__main__':
