@@ -125,3 +125,11 @@ async def scenario_download(session):
         # created so we can't fully bank on the results matching.
         # So we'll just be happy to note that it worked.
         assert resp.status in (302, 404), resp.status
+        if resp.status == 404:
+            # If it was a 404, make sure the 404 message came from Tecken
+            text = await resp.text()
+            assert 'Symbol Not Found' in text, text
+        elif resp.status == 302:
+            # If it was a redirect, make sure the location header
+            # stil has the job uri in it.
+            assert job[0] in resp.headers['location']
