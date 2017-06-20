@@ -172,6 +172,35 @@ def analyze_total_times():
         print(*things)
 
 
+def cache_feasibility(*args):
+    if args:
+        size = int(args[0])
+    else:
+        size = 300  # default Django cache backend MAX_ENTRIES
+    cache = set()
+    with open('downloading/symbol-queries.csv') as r:
+        reader = csv.reader(r)
+        next(reader)
+        misses = 0
+        hits = 0
+        for line in reader:
+            dt, uri, status_code, private, total_time = line
+            if uri in cache:
+                hits += 1
+            else:
+                misses += 1
+            cache.add(uri)
+            if len(cache) > size:
+                # cull!
+                # delete a third
+                doomed = [k for (i, k) in enumerate(cache) if i % 3 == 0]
+                for k in doomed:
+                    cache.remove(k)
+        print("Misses:", misses)
+        print("Hits:", hits)
+        print("Hit ratio", 100 * hits / (hits + misses))
+
+
 def get_all_logs():
     prefixes = (
         (True, 'downloadlogs/private-symbols'),
@@ -247,5 +276,6 @@ if __name__ == '__main__':
         'group': group,
         'analyze_rates': analyze_rates,
         'analyze_total_times': analyze_total_times,
+        'cache_feasibility': cache_feasibility,
     }
-    commands[arg]()
+    commands[arg](*sys.argv[2:])
