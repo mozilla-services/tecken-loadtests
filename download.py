@@ -201,10 +201,18 @@ def run(base_url, csv_file, socorro_missing_csv_file=None):
         jobs = list(reader)
 
     # jobs=[x for x in jobs if x[1]=='200']
-    random.shuffle(jobs)
+
+    flattened_jobs = []
+    for uri, status, private, count in jobs:
+        for i in range(int(count)):
+            flattened_jobs.append((
+                uri, status, private, 1
+            ))
+
+    random.shuffle(flattened_jobs)
 
     try:
-        for i, job in enumerate(jobs):
+        for i, job in enumerate(flattened_jobs):
             s3_uri = job[0]
             status_code = job[1]
 
