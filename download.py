@@ -60,11 +60,16 @@ def appendify(source, dest):
 
 
 def _stats(numbers):
-    return (
-        statistics.median(numbers),
-        statistics.mean(numbers),
-        statistics.stdev(numbers),
-    )
+    try:
+        return (
+            statistics.median(numbers),
+            statistics.mean(numbers),
+            statistics.stdev(numbers),
+        )
+    except statistics.StatisticsError:
+        return (
+            'n/a', 'n/a', 'n/a'
+        )
 
 
 def run(base_url, csv_file, socorro_missing_csv_file=None):
