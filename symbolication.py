@@ -84,6 +84,40 @@ def _stats(r):
     return s[len(s)//2], avg, (sdsq/(len(r)-1 or 1))**.5
 
 
+def post_patiently(url, **kwargs):
+    attempts = kwargs.pop('attempts', 0)
+    payload = kwargs['json']
+    try:
+        t0 = time.time()
+        options = {
+            'headers': {
+                'Debug': 'true',
+            },
+        }
+        parsed = urlparse(url)
+        if parsed.scheme == 'https' and parsed.netloc == 'prod.tecken.dev':
+            options['verify'] = False
+        req = requests.post(url, json=payload, **options)
+        if req.status_code == 502 and 'localhost:8000' in url:
+            # When running against, http://localhost:8000 and the Django
+            # server restarts, you get a 502 error. Just try again
+            # a little later.
+            print("OH NO!! 502 Error")
+            raise ConnectionError('a hack')
+        if req.status_code != 200:
+            print('URL:', url)
+            print('PAYLOAD:', json.dumps(payload))
+        assert req.status_code == 200, req.status_code
+        r = req.json()
+        t1 = time.time()
+        return (t1, t0), r
+    except ConnectionError:
+        if attempts > 3:
+            raise
+        time.sleep(2)
+        return post_patiently(url, attempts=attempts + 1, **kwargs)
+
+
 def run(input_dir, url):
     files_count = wc_dir(input_dir)
     print(format(files_count, ','), 'FILES')
@@ -171,38 +205,6 @@ def run(input_dir, url):
             L = len(times)
         return '{:.1f}'.format(L * 60 / t)
 
-    def post_patiently(*args, **kwargs):
-        attempts = kwargs.pop('attempts', 0)
-        try:
-            t0 = time.time()
-            options = {
-                'headers': {
-                    'Debug': 'true',
-                },
-            }
-            parsed = urlparse(url)
-            if parsed.scheme == 'https' and parsed.netloc == 'prod.tecken.dev':
-                options['verify'] = False
-            req = requests.post(url, json=payload, **options)
-            if req.status_code == 502 and 'localhost:8000' in url:
-                # When running against, http://localhost:8000 and the Django
-                # server restarts, you get a 502 error. Just try again
-                # a little later.
-                print("OH NO!! 502 Error")
-                raise ConnectionError('a hack')
-            if req.status_code != 200:
-                print('URL:', url)
-                print('PAYLOAD:', json.dumps(payload))
-            assert req.status_code == 200, req.status_code
-            r = req.json()
-            t1 = time.time()
-            return (t1, t0), r
-        except ConnectionError:
-            if attempts > 3:
-                raise
-            time.sleep(2)
-            return post_patiently(*args, attempts=attempts + 1, **kwargs)
-
     files = [os.path.join(input_dir, x) for x in os.listdir(input_dir)]
     random.shuffle(files)
 
@@ -213,16 +215,31 @@ def run(input_dir, url):
     )
     print('All verbose logging goes into:', logfile_path)
     print()
+    bundle_size = 3
+
+    bundle_empty = {
+        'stacks': [],
+        'memoryMaps': [],
+        'version': 5,
+    }
+    bundle = copy.deepcopy(bundle_empty)
     try:
         for i, fp in enumerate(files):
             with open(fp) as f, open(logfile_path, 'a') as logfile:
                 payload = json.loads(f.read())
+                if len(bundle['stacks']) < bundle_size:
+                    bundle['stacks'].append(payload['stacks'][0])
+                    bundle['memoryMap'].append(payload['memoryMap'][0])
+                    continue
 
+                # print(len(bundle['stacks']), len(bundle['memoryMap']))
                 print("PAYLOAD (as JSON)", file=logfile)
                 print('-' * 79, file=logfile)
-                print(json.dumps(payload), file=logfile)
+                # print(json.dumps(payload), file=logfile)
+                print(json.dumps(bundle), file=logfile)
 
-                (t1, t0), r = post_patiently(url, json=payload)
+                (t1, t0), r = post_patiently(url, json=bundle)
+                bundle = copy.deepcopy(bundle_empty)
                 # print(r['knownModules'])
                 # t0 = time.time()
                 # req = requests.post(url, json=payload)
