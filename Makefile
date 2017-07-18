@@ -31,4 +31,4 @@ download-stage:
 	python download.py https://symbols.stage.mozaws.net downloading/symbol-queries-groups.csv downloading/socorro-missing.csv
 
 make-symbol-zip:
-	python make-symbol-zip
+	python make-symbol-zip.py
