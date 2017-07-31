@@ -132,4 +132,6 @@ async def scenario_download(session):
         elif resp.status == 302:
             # If it was a redirect, make sure the location header
             # stil has the job uri in it.
-            assert job[0] in resp.headers['location']
+            location = resp.headers['location']
+            err = "Bad location %r, want %r"
+            assert job[0] in location, err % (location, job[0])
