@@ -102,14 +102,15 @@ async def worker_starts(worker_id, args):
 
 @molotov.scenario(40)
 async def scenario_symbolication(session):
+    headers = {'Content/Type': 'application/json'}
+
     with open(get_var('stacks').pop()) as f:
-        stack = json.load(f)
-    url = get_var('url_server') + '/symbolicate/v4'
-    async with session.post(url, json=stack) as resp:
-        assert resp.status == 200
-        res = await resp.json()
-        assert 'knownModules' in res
-        assert 'symbolicatedStacks' in res
+        url = get_var('url_server') + '/symbolicate/v4'
+        async with session.post(url, data=f, headers=headers) as resp:
+            assert resp.status == 200
+            res = await resp.json()
+            assert 'knownModules' in res
+            assert 'symbolicatedStacks' in res
 
 
 @molotov.scenario(60)
