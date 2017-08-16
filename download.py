@@ -33,6 +33,8 @@ def time_fmt(x):
         minutes = x // 60
         seconds = x % 60
         return '{}m{:.1f}s'.format(minutes, seconds)
+    # elif x < 0.001:
+    #     return '{:.2f}ms'.format(x * 1000)
     return '{:.3f}s'.format(x)
 
 
@@ -226,16 +228,19 @@ def run(base_url, csv_file, socorro_missing_csv_file=None):
     )
 
     try:
+        cache_hits = []
         for i, job in enumerate(flattened_jobs):
             s3_uri = job[0]
             status_code = job[1]
 
             uri = '/'.join(s3_uri.split('/')[-3:])
-            url = urljoin(base_url, uri)
-
-            if url.endswith(' HTTP/1.1'):
+            if uri.count('/') != 2:
+                # Some junk that got in
+                continue
+            if ' ' in uri:
                 # bad CSV parsing apparently
-                url = url[:-len(' HTTP/1.1')]
+                continue
+            url = urljoin(base_url, uri)
 
             params = {}
             try:
@@ -259,24 +264,39 @@ def run(base_url, csv_file, socorro_missing_csv_file=None):
             )
             try:
                 internal_time = float(r.headers['debug-time'])
+                if internal_time < 0.01:
+                    cache_hits.append(True)
+                else:
+                    cache_hits.append(False)
+                cache_hits = cache_hits[:500]
             except KeyError:
                 internal_time = None
 
             print(
                 time_fmt(t1 - t0).ljust(10),
-                time_fmt(
-                    internal_time is not None and internal_time or 'n/a'
+                (
+                    internal_time is not None and
+                    time_fmt(internal_time) or
+                    'n/a'
                 ).ljust(10),
                 url,
             )
 
-            out = ' {} of {} -- {} requests/s -- {} requests/min ({}) '.format(
-                format(i + 1, ','),
-                format(uris_count, ','),
-                speed_per_second(),
-                speed_per_minute(),
-                total_duration(),
-            ).center(80, '=')
+            _cache_hits = len([x for x in cache_hits if x])
+            _cache_misses = len([x for x in cache_hits if not x])
+            fastcache = 100 * _cache_hits / (_cache_misses + _cache_hits)
+            out = (
+                ' {} of {} -- {} requests/s -- {} requests/min ({}) -- '
+                '{:.1f}% fastcache (last {})'.format(
+                    format(i + 1, ','),
+                    format(uris_count, ','),
+                    speed_per_second(),
+                    speed_per_minute(),
+                    total_duration(),
+                    fastcache,
+                    len(cache_hits),
+                ).center(80, '=')
+            )
             print(out, end='')
             print('\r' * len(out), end='')
 
