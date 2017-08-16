@@ -27,6 +27,8 @@ def number_fmt(x):
 
 
 def time_fmt(x):
+    if x == 'n/a':
+        return x
     if x > 500:
         minutes = x // 60
         seconds = x % 60
@@ -142,6 +144,7 @@ def run(base_url, csv_file, socorro_missing_csv_file=None):
             median, average, std = _stats(request_times)
             internal_times = [x[1] for x in by_got_times[key] if x[1]]
             imedian, iaverage, istd = _stats(internal_times)
+            # print((imedian, iaverage, istd))
             total = len(by_got_matched[key])
             right = 100 * sum([x for x in by_got_matched[key] if x]) / total
             print(
@@ -216,6 +219,12 @@ def run(base_url, csv_file, socorro_missing_csv_file=None):
 
     random.shuffle(flattened_jobs)
 
+    print(
+        'TIME'.ljust(10),
+        'INTERNAL'.ljust(10),
+        'URL',
+    )
+
     try:
         for i, job in enumerate(flattened_jobs):
             s3_uri = job[0]
@@ -240,6 +249,7 @@ def run(base_url, csv_file, socorro_missing_csv_file=None):
                 code_file, code_id = code_files_and_ids[key]
                 params['code_file'] = code_file
                 params['code_id'] = code_id
+
             (t1, t0), r = get_patiently(
                 url,
                 params=params,
@@ -251,6 +261,14 @@ def run(base_url, csv_file, socorro_missing_csv_file=None):
                 internal_time = float(r.headers['debug-time'])
             except KeyError:
                 internal_time = None
+
+            print(
+                time_fmt(t1 - t0).ljust(10),
+                time_fmt(
+                    internal_time is not None and internal_time or 'n/a'
+                ).ljust(10),
+                url,
+            )
 
             out = ' {} of {} -- {} requests/s -- {} requests/min ({}) '.format(
                 format(i + 1, ','),

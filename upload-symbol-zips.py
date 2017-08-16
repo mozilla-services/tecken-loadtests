@@ -9,7 +9,7 @@ import random
 import tempfile
 import time
 import glob
-from pprint import pprint
+from urllib.parse import urlparse
 
 import click
 import requests
@@ -65,7 +65,8 @@ def upload(filepath, url, auth_token):
         files={basename: open(filepath, 'rb')},
         headers={
             'auth-token': auth_token,
-        }
+        },
+        timeout=30,
     )
     t1 = time.time()
     if response.status_code == 201:
@@ -78,17 +79,18 @@ def upload(filepath, url, auth_token):
             ),
             fg='green'
         ))
-        upload_id = response.json()['upload']['id']
-        time.sleep(1)
-        query_url = url + '{}/'.format(upload_id)
-        response = requests.get(
-            query_url,
-            headers={'auth-token': auth_token},
-        )
-        print('Result of querying '.ljust(80, '-'))
-        pprint(response.json())
-        print('-' * 80)
+        # upload_id = response.json()['upload']['id']
+        # time.sleep(1)
+        # query_url = url + '{}/'.format(upload_id)
+        # response = requests.get(
+        #     query_url,
+        #     headers={'auth-token': auth_token},
+        # )
+        # print('Result of querying '.ljust(80, '-'))
+        # pprint(response.json())
+        # print('-' * 80)
     else:
+        click.echo(response.json())
         click.echo(
             click.style(
                 'Failed to upload! Status: {}'.format(response.status_code),
@@ -114,7 +116,11 @@ def run(
     max_size=None
 ):
     url = url or 'http://localhost:8000/upload/'
-    assert url.endswith('/'), url
+    if not urlparse(url).path:
+        url += '/upload/'
+    elif urlparse(url).path == '/':
+        url += 'upload/'
+    assert url.endswith('/upload/'), url
     zips_dir = zips_dir or _default_zips_dir
     max_size = max_size or '250m'
     max_size_bytes = parse_file_size(max_size)
