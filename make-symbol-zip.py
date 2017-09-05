@@ -13,6 +13,7 @@ import zipfile
 import glob
 import gzip
 import json
+import re
 
 import click
 import requests
@@ -28,6 +29,29 @@ def sizeof_fmt(num, suffix='B'):
             return '%3.1f%s%s' % (num, unit, suffix)
         num /= 1024.0
     return '%.1f%s%s' % (num, 'Yi', suffix)
+
+
+def parse_file_size(s):
+    parsed = re.findall('(\d+)([gmbk]+)', s)
+    if not parsed:
+        number = s
+        unit = 'b'
+    else:
+        number, unit = parsed[0]
+    number = int(number)
+    unit = unit.lower()
+
+    if unit == 'b':
+        pass
+    elif unit in ('k', 'kb'):
+        number *= 1024
+    elif unit in ('m', 'mb'):
+        number *= 1024 * 1024
+    elif unit in ('g', 'gb'):
+        number *= 1024 * 1024 * 1024
+    else:
+        raise NotImplementedError(unit)
+    return number
 
 
 @deco.concurrent
@@ -131,8 +155,7 @@ _default_save_dir = os.path.join(tempfile.gettempdir(), 'massive-symbol-zips')
 )
 @click.option(
     '--max-size',
-    help='Max sizes (in bytes) of files to upload (default is no limit)',
-    type=int,
+    help='Max size of files to upload (default is no limit)',
 )
 @click.option(
     '--silent',
@@ -141,6 +164,7 @@ _default_save_dir = os.path.join(tempfile.gettempdir(), 'massive-symbol-zips')
 )
 def run(save_dir=None, max_size=None, silent=False):
     if max_size:
+        max_size = parse_file_size(max_size)
         print(
             'Max. size filter:',
             sizeof_fmt(max_size),

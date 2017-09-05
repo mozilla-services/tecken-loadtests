@@ -106,7 +106,9 @@ def upload(filepath, url, auth_token):
         _default_zips_dir,
     )
 )
-@click.option('--max-size')
+@click.option('--max-size', default='250mb', help=(
+    'Max size of files to attempt to upload.'
+))
 @click.option('-n', '--number', default=1, type=int)
 @click.option('--delete-uploaded-file', is_flag=True, help=(
     'Delete the file that was successfully uploaded.'
