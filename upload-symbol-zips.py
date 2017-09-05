@@ -80,16 +80,7 @@ def upload(filepath, url, auth_token):
             ),
             fg='green'
         ))
-        # upload_id = response.json()['upload']['id']
-        # time.sleep(1)
-        # query_url = url + '{}/'.format(upload_id)
-        # response = requests.get(
-        #     query_url,
-        #     headers={'auth-token': auth_token},
-        # )
-        # print('Result of querying '.ljust(80, '-'))
-        # pprint(response.json())
-        # print('-' * 80)
+        return True
     else:
         click.echo(click.style(
             'Failed to upload! Status code: {}'.format(response.status_code)
@@ -180,14 +171,14 @@ def run(
 
     random.shuffle(zips)
     for zip_ in zips[:number]:
-        upload(zip_, url, auth_token)
-        if delete_uploaded_file:
-            click.style(
-                'Deleting zip file {}'.format(
-                    zip_
+        if upload(zip_, url, auth_token):
+            if delete_uploaded_file:
+                click.style(
+                    'Deleting zip file {}'.format(
+                        zip_
+                    )
                 )
-            )
-            os.remove(zip_)
+                os.remove(zip_)
 
     return 0
 
