@@ -83,6 +83,9 @@ def run(base_url, csv_file, socorro_missing_csv_file=None):
 
     jobs_done = []
 
+    cache_hits = []
+    ignore_hits = 0
+
     code_files_and_ids = {}
     if socorro_missing_csv_file:
         with open(socorro_missing_csv_file) as f:
@@ -102,6 +105,13 @@ def run(base_url, csv_file, socorro_missing_csv_file=None):
         print(
             (finished and 'JOBS DONE' or 'JOBS DONE SO FAR').ljust(20),
             format(len(jobs_done), ',')
+        )
+        print(
+            'IGNORE HITS'.ljust(20),
+            ignore_hits,
+            ' ({:.1f}%)'.format(
+                100 * ignore_hits / len(jobs_done)
+            )
         )
 
         total_duration = times[-1] - times[0]
@@ -158,6 +168,9 @@ def run(base_url, csv_file, socorro_missing_csv_file=None):
                 time_fmt(iaverage).rjust(N, P),
                 number_fmt(right).rjust(N, P),
             )
+
+        print('Ignore hits', ignore_hits)
+        print('Not ignore hits', len(cache_hits))
 
     times = []
 
@@ -228,7 +241,6 @@ def run(base_url, csv_file, socorro_missing_csv_file=None):
     )
 
     try:
-        cache_hits = []
         for i, job in enumerate(flattened_jobs):
             s3_uri = job[0]
             status_code = job[1]
@@ -264,7 +276,9 @@ def run(base_url, csv_file, socorro_missing_csv_file=None):
             )
             try:
                 internal_time = float(r.headers['debug-time'])
-                if internal_time < 0.01:
+                if r.headers['debug-time'] == '0':
+                    ignore_hits += 1
+                elif internal_time < 0.01:
                     cache_hits.append(True)
                 else:
                     cache_hits.append(False)
@@ -282,9 +296,14 @@ def run(base_url, csv_file, socorro_missing_csv_file=None):
                 url,
             )
 
-            _cache_hits = len([x for x in cache_hits if x])
-            _cache_misses = len([x for x in cache_hits if not x])
-            fastcache = 100 * _cache_hits / (_cache_misses + _cache_hits)
+            if cache_hits:
+                _cache_hits = len([x for x in cache_hits if x])
+                _cache_misses = len([x for x in cache_hits if not x])
+                fastcache = 100 * _cache_hits / (
+                    _cache_misses + _cache_hits
+                )
+            else:
+                fastcache = 0.0
             out = (
                 ' {} of {} -- {} requests/s -- {} requests/min ({}) -- '
                 '{:.1f}% fastcache (last {})'.format(
