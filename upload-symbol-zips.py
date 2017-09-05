@@ -108,12 +108,16 @@ def upload(filepath, url, auth_token):
 )
 @click.option('--max-size')
 @click.option('-n', '--number', default=1, type=int)
+@click.option('--delete-uploaded-file', is_flag=True, help=(
+    'Delete the file that was successfully uploaded.'
+))
 @click.argument('url', nargs=1, required=False)
 def run(
     url=None,
     number=1,
     zips_dir=None,
-    max_size=None
+    max_size=None,
+    delete_uploaded_file=False,
 ):
     url = url or 'http://localhost:8000/upload/'
     if not urlparse(url).path:
@@ -168,6 +172,13 @@ def run(
     random.shuffle(zips)
     for zip_ in zips[:number]:
         upload(zip_, url, auth_token)
+        if delete_uploaded_file:
+            click.style(
+                'Deleting zip file {}'.format(
+                    zip_
+                )
+            )
+            os.remove(zip_)
 
     return 0
 
