@@ -54,7 +54,7 @@ def download(uri, save_dir, store):
     store[uri] = (fullpath, t1 - t0, int(response.headers['Content-Length']))
 
 
-def _get_index(save_dir, days=0):
+def _get_index(save_dir, days=0, max_size=None, silent=False):
     # Pick a random file from the ./symbols-uploaded/ directory
     symbols_uploaded_dir = os.path.join(
         os.path.dirname(__file__),
@@ -68,6 +68,8 @@ def _get_index(save_dir, days=0):
     all_uploads = uploaded['hits']
     possible = {}
     for i, bundle in enumerate(all_uploads):
+        if max_size is not None and bundle['size'] > max_size:
+            continue
         wouldbe_name = _make_filepath(save_dir, bundle)
         saved_already = os.path.isfile(wouldbe_name)
         print(
@@ -79,7 +81,12 @@ def _get_index(save_dir, days=0):
         if not saved_already:
             possible[i] = (bundle['date'], bundle['size'])
 
-    preferred = input('Which one? [blank for random]: ')
+    if not possible:
+        raise Exception('No possible zip files')
+    if silent:
+        preferred = None
+    else:
+        preferred = input('Which one? [blank for random]: ')
     if not preferred:
         preferred = random.choice(list(possible.keys()))
     else:
@@ -122,11 +129,26 @@ _default_save_dir = os.path.join(tempfile.gettempdir(), 'massive-symbol-zips')
         _default_save_dir,
     )
 )
-def run(save_dir=None):
+@click.option(
+    '--max-size',
+    help='Max sizes (in bytes) of files to upload (default is no limit)',
+    type=int,
+)
+@click.option(
+    '--silent',
+    help='Will not prompt for an input and use random choice if need be',
+    is_flag=True,
+)
+def run(save_dir=None, max_size=None, silent=False):
+    if max_size:
+        print(
+            'Max. size filter:',
+            sizeof_fmt(max_size),
+        )
     save_dir = save_dir or _default_save_dir
     if not os.path.isdir(save_dir):
         os.makedirs(save_dir, exist_ok=True)
-    bundle = _get_index(save_dir)
+    bundle = _get_index(save_dir, max_size=max_size, silent=silent)
     all_symbol_urls = []
     all_symbol_urls.extend(bundle['content'].get('added', []))
     all_symbol_urls.extend(bundle['content'].get('existed', []))
