@@ -90,6 +90,12 @@ def upload(filepath, url, auth_token):
         # pprint(response.json())
         # print('-' * 80)
     else:
+        click.echo(click.style(
+            'Failed to upload! {} - {!r}'.format(
+                response.status_code,
+                response.content,
+            )
+        ))
         click.echo(response.json())
         click.echo(
             click.style(
