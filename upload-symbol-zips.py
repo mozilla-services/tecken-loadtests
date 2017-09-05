@@ -131,43 +131,27 @@ def run(
     try:
         auth_token = os.environ['AUTH_TOKEN']
     except KeyError:
-        click.echo(
-            click.style(
-                'You have to set environment variable AUTH_TOKEN first.',
-                fg='red'
-            )
+        raise click.ClickException(
+            'You have to set environment variable AUTH_TOKEN first.'
         )
-        return 1
     if not os.path.isdir(zips_dir):
-        click.echo(
-            click.style(
-                'Directory {} does not exist'.format(zips_dir),
-                fg='red'
-            )
+        raise click.ClickException(
+            'Directory {} does not exist'.format(zips_dir)
         )
-        return 2
     zips = glob.glob(os.path.join(zips_dir, '*.zip'))
     if not zips:
-        click.echo(
-            click.style(
-                'Directory {} contains no .zip files'.format(zips_dir),
-                fg='red'
-            )
+        raise click.ClickException(
+            'Directory {} contains no .zip files'.format(zips_dir)
         )
-        return 3
 
     zips = [x for x in zips if os.stat(x).st_size < max_size_bytes]
     if not zips:
-        click.echo(
-            click.style(
-                'There fewer than {} files less than {}'.format(
-                    number,
-                    max_size,
-                ),
-                fg='red'
+        raise click.ClickException(
+            'There fewer than {} files less than {}'.format(
+                number,
+                max_size,
             )
         )
-        return 4
 
     random.shuffle(zips)
     upload_failures = 0
@@ -183,7 +167,10 @@ def run(
             )
             os.remove(zip_)
 
-    return upload_failures
+    if upload_failures:
+        raise click.ClickException(
+            '{} files failed to upload'.format(upload_failures)
+        )
 
 
 if __name__ == '__main__':
