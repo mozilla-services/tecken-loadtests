@@ -10,6 +10,7 @@ import tempfile
 import time
 import glob
 from urllib.parse import urlparse
+from json.decoder import JSONDecodeError
 
 import click
 import requests
@@ -91,12 +92,12 @@ def upload(filepath, url, auth_token):
         # print('-' * 80)
     else:
         click.echo(click.style(
-            'Failed to upload! {} - {!r}'.format(
-                response.status_code,
-                response.content,
-            )
+            'Failed to upload! Status code: {}'.format(response.status_code)
         ))
-        click.echo(response.json())
+        try:
+            click.echo(response.json())
+        except JSONDecodeError:
+            click.echo(response.content)
         click.echo(
             click.style(
                 'Failed to upload! Status: {}'.format(response.status_code),
