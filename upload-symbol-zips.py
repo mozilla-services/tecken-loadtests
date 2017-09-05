@@ -170,17 +170,20 @@ def run(
         return 4
 
     random.shuffle(zips)
+    upload_failures = 0
     for zip_ in zips[:number]:
-        if upload(zip_, url, auth_token):
-            if delete_uploaded_file:
-                click.style(
-                    'Deleting zip file {}'.format(
-                        zip_
-                    )
+        successful = upload(zip_, url, auth_token)
+        if not successful:
+            upload_failures += 1
+        if successful and delete_uploaded_file:
+            click.style(
+                'Deleting zip file {}'.format(
+                    zip_
                 )
-                os.remove(zip_)
+            )
+            os.remove(zip_)
 
-    return 0
+    return upload_failures
 
 
 if __name__ == '__main__':
