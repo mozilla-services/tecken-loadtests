@@ -215,31 +215,16 @@ def run(input_dir, url):
     )
     print('All verbose logging goes into:', logfile_path)
     print()
-    bundle_size = 3
-
-    bundle_empty = {
-        'stacks': [],
-        'memoryMaps': [],
-        'version': 5,
-    }
-    bundle = copy.deepcopy(bundle_empty)
     try:
         for i, fp in enumerate(files):
             with open(fp) as f, open(logfile_path, 'a') as logfile:
                 payload = json.loads(f.read())
-                if len(bundle['stacks']) < bundle_size:
-                    bundle['stacks'].append(payload['stacks'][0])
-                    bundle['memoryMap'].append(payload['memoryMap'][0])
-                    continue
 
-                # print(len(bundle['stacks']), len(bundle['memoryMap']))
                 print("PAYLOAD (as JSON)", file=logfile)
                 print('-' * 79, file=logfile)
-                # print(json.dumps(payload), file=logfile)
-                print(json.dumps(bundle), file=logfile)
+                print(json.dumps(payload), file=logfile)
 
-                (t1, t0), r = post_patiently(url, json=bundle)
-                bundle = copy.deepcopy(bundle_empty)
+                (t1, t0), r = post_patiently(url, json=payload)
                 # print(r['knownModules'])
                 # t0 = time.time()
                 # req = requests.post(url, json=payload)
