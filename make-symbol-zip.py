@@ -96,12 +96,13 @@ def _get_index(save_dir, days=0, max_size=None, silent=False):
             continue
         wouldbe_name = _make_filepath(save_dir, bundle)
         saved_already = os.path.isfile(wouldbe_name)
-        print(
-            str(i + 1).ljust(4),
-            bundle['date'].ljust(37),
-            sizeof_fmt(bundle['size']).ljust(10),
-            'saved already' if saved_already else ''
-        )
+        if not silent:
+            print(
+                str(i + 1).ljust(4),
+                bundle['date'].ljust(37),
+                sizeof_fmt(bundle['size']).ljust(10),
+                'saved already' if saved_already else ''
+            )
         if not saved_already:
             possible[i] = (bundle['date'], bundle['size'])
 
