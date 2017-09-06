@@ -54,6 +54,10 @@ def parse_file_size(s):
     return number
 
 
+def time_fmt(secs):
+    return '{:.2f}s'.format(secs)
+
+
 @deco.concurrent
 def download(uri, save_dir, store):
     url = (
@@ -185,10 +189,14 @@ def run(save_dir=None, max_size=None, silent=False):
         save_filepath = _make_filepath(save_dir, bundle)
         total_time_took = 0.0
         total_size = 0
+        sizes = []
+        times = []
         with zipfile.ZipFile(save_filepath, mode='w') as zf:
             for uri, (fullpath, time_took, size) in downloaded.items():
                 total_time_took += time_took
+                times.append(time_took)
                 total_size += size
+                sizes.append(size)
                 if fullpath:
                     path = uri.split(',')[1].replace('v1/', '')
                     assert os.path.isfile(fullpath)
@@ -205,12 +213,16 @@ def run(save_dir=None, max_size=None, silent=False):
             save_filepath
         )
         print(
-            'Sum time took (seconds):'.ljust(P),
-            round(total_time_took, 1)
+            'Sum time took:'.ljust(P),
+            time_fmt(total_time_took).ljust(P),
+            'Download speed:'.ljust(P),
+            sizeof_fmt(sum(sizes) / sum(times)) + '/s'
         )
         print(
-            'Total time took (seconds):'.ljust(P),
-            round(t1 - t0, 1)
+            'Total time took:'.ljust(P),
+            time_fmt(t1 - t0).ljust(P),
+            'Download speed:'.ljust(P),
+            sizeof_fmt(sum(sizes) / (t1 - t0)) + '/s',
         )
         print(
             'Total size (files):'.ljust(P),
