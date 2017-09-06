@@ -55,7 +55,7 @@ def upload(filepath, url, auth_token, max_retries=5):
     basename = os.path.basename(filepath)
     click.echo(click.style(
         'About to upload {} ({}) to {}'.format(
-            basename,
+            filepath,
             sizeof_fmt(os.stat(filepath).st_size),
             url,
         ),
@@ -76,11 +76,13 @@ def upload(filepath, url, auth_token, max_retries=5):
             t1 = time.time()
             break
         except ReadTimeout as exception:
+            t1 = time.time()
             retries += 1
             if retries >= max_retries:
                 raise
             click.echo(click.style(
-                'Retrying due to {}: {}'.format(
+                'Retrying (after {:.1f}s) due to {}: {}'.format(
+                    t1 - t0,
                     exception.__class__.__name__,
                     exception,
                 ),
