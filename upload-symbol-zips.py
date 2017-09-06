@@ -51,7 +51,7 @@ def parse_file_size(s):
     return number
 
 
-def upload(filepath, url, auth_token, max_retries=5):
+def upload(filepath, url, auth_token, max_retries=5, timeout=30):
     basename = os.path.basename(filepath)
     click.echo(click.style(
         'About to upload {} ({}) to {}'.format(
@@ -71,7 +71,7 @@ def upload(filepath, url, auth_token, max_retries=5):
                 headers={
                     'auth-token': auth_token,
                 },
-                timeout=30,
+                timeout=timeout,
             )
             t1 = time.time()
             break
@@ -127,6 +127,7 @@ def upload(filepath, url, auth_token, max_retries=5):
     'Max size of files to attempt to upload.'
 ))
 @click.option('-n', '--number', default=1, type=int)
+@click.option('-t', '--timeout', default=30, type=int)
 @click.option('--delete-uploaded-file', is_flag=True, help=(
     'Delete the file that was successfully uploaded.'
 ))
@@ -137,6 +138,7 @@ def run(
     zips_dir=None,
     max_size=None,
     delete_uploaded_file=False,
+    timeout=30,
 ):
     url = url or 'http://localhost:8000/upload/'
     if not urlparse(url).path:
@@ -175,7 +177,7 @@ def run(
     random.shuffle(zips)
     upload_failures = 0
     for zip_ in zips[:number]:
-        successful = upload(zip_, url, auth_token)
+        successful = upload(zip_, url, auth_token, timeout=timeout)
         if not successful:
             upload_failures += 1
         if successful and delete_uploaded_file:
