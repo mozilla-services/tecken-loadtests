@@ -14,6 +14,8 @@ import glob
 import gzip
 import json
 import re
+import multiprocessing
+from urllib.parse import urlparse
 
 import click
 import requests
@@ -74,7 +76,7 @@ def download(uri, save_dir, store):
     print(
         response.status_code,
         sizeof_fmt(int(response.headers['Content-Length'])).ljust(10),
-        url,
+        urlparse(url).path.split('/v1')[1],
     )
     with open(fullpath, 'wb') as f:
         f.write(response.content)
@@ -211,6 +213,10 @@ def run(save_dir=None, max_size=None, silent=False):
         print(
             'TO'.ljust(P),
             save_filepath
+        )
+        print(
+            '# CPUS:'.ljust(P),
+            multiprocessing.cpu_count(),
         )
         print(
             'Sum time took:'.ljust(P),
