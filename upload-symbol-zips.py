@@ -14,6 +14,7 @@ from json.decoder import JSONDecodeError
 
 import click
 import requests
+from requests.exceptions import ReadTimeout
 
 
 def sizeof_fmt(num, suffix='B'):
@@ -50,7 +51,7 @@ def parse_file_size(s):
     return number
 
 
-def upload(filepath, url, auth_token):
+def upload(filepath, url, auth_token, max_retries=5):
     basename = os.path.basename(filepath)
     click.echo(click.style(
         'About to upload {} ({}) to {}'.format(
@@ -60,16 +61,32 @@ def upload(filepath, url, auth_token):
         ),
         fg='green'
     ))
-    t0 = time.time()
-    response = requests.post(
-        url,
-        files={basename: open(filepath, 'rb')},
-        headers={
-            'auth-token': auth_token,
-        },
-        timeout=30,
-    )
-    t1 = time.time()
+    retries = 0
+    while True:
+        try:
+            t0 = time.time()
+            response = requests.post(
+                url,
+                files={basename: open(filepath, 'rb')},
+                headers={
+                    'auth-token': auth_token,
+                },
+                timeout=30,
+            )
+            t1 = time.time()
+            break
+        except ReadTimeout as exception:
+            retries += 1
+            if retries >= max_retries:
+                raise
+            click.echo(click.style(
+                'Retrying due to {}: {}'.format(
+                    exception.__class__.__name__,
+                    exception,
+                ),
+                fg='yellow'
+            ))
+
     if response.status_code == 201:
         click.echo(click.style(
             'Took {} seconds to upload {} ({} - {}/s)'.format(
