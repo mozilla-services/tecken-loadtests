@@ -57,6 +57,17 @@ the time it takes Tecken to talk to S3. But mind you, Tecken can iterate
 over a list of S3 sources. It's not possible to tell if it
 
 
+## Getting TaskCluster Artifact URLs
+
+Builds are made on TaskCluster, as an artifact it builds symbols zip files.
+To get a list of recent ones of these for local development or load testing
+run the script:
+
+    python list-firefox-symbols-zips.py
+
+Each URL can be used to test symbol upload by URL.
+
+
 ## To Use (for Symbolication)
 
 1. Download or clone this repo.
