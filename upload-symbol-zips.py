@@ -17,6 +17,10 @@ import requests
 from requests.exceptions import ReadTimeout
 
 
+class BadGatewayError(Exception):
+    """happens when you get a 502 error from the server"""
+
+
 def sizeof_fmt(num, suffix='B'):
     for unit in ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z']:
         if abs(num) < 1024.0:
@@ -73,9 +77,12 @@ def upload(filepath, url, auth_token, max_retries=5, timeout=30):
                 },
                 timeout=timeout,
             )
+            if response.status_code == 502:
+                # force a re-attempt
+                raise BadGatewayError(response.content)
             t1 = time.time()
             break
-        except ReadTimeout as exception:
+        except (ReadTimeout, BadGatewayError) as exception:
             t1 = time.time()
             retries += 1
             if retries >= max_retries:
