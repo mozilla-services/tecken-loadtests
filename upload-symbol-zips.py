@@ -180,7 +180,13 @@ def run(
             'Directory {} contains no .zip files'.format(zips_dir)
         )
 
-    zips = [x for x in zips if os.stat(x).st_size < max_size_bytes]
+    def locked(fn):
+        return os.path.isfile(fn + '.locked')
+
+    zips = [
+        x for x in zips
+        if os.stat(x).st_size < max_size_bytes and not locked(x)
+    ]
     if not zips:
         raise click.ClickException(
             'There fewer than {} files less than {}'.format(
@@ -191,7 +197,10 @@ def run(
 
     random.shuffle(zips)
     upload_failures = 0
+
     for zip_ in zips[:number]:
+        with open(zip_ + '.locked', 'w') as f:
+            f.write('locked {}\n'.format(time.time()))
         successful = upload(zip_, url, auth_token, timeout=timeout)
         if not successful:
             upload_failures += 1
@@ -202,6 +211,8 @@ def run(
                 )
             )
             os.remove(zip_)
+            if os.path.isfile(zip_ + '.locked'):
+                os.remove(zip_ + '.locked')
 
     if upload_failures:
         raise click.ClickException(
