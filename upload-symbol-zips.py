@@ -80,6 +80,9 @@ def upload(filepath, url, auth_token, max_retries=5, timeout=60):
             if response.status_code == 502:
                 # force a re-attempt
                 raise BadGatewayError(response.content)
+            if response.status_code == 408:
+                # Nginx calmly says Gunicorn timed out. Force a re-attempt.
+                raise ReadTimeout(response.content)
             t1 = time.time()
             break
         except (ReadTimeout, BadGatewayError) as exception:
