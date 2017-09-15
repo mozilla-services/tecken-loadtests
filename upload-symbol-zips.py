@@ -86,10 +86,10 @@ def upload(filepath, url, auth_token, max_retries=5, timeout=60):
             t1 = time.time()
             retries += 1
             click.echo(click.style(
-                'Deliberately sleeping for {} seconds'.format(retries),
+                'Deliberately sleeping for {} seconds'.format(retries * 5),
                 fg='yellow'
             ))
-            time.sleep(retries)
+            time.sleep(retries * 5)
             if retries >= max_retries:
                 raise
             click.echo(click.style(
