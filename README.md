@@ -260,3 +260,11 @@ aren't too large you can add `--max-size` option. E.g.
     python upload-symbol-zips.py --max-size 100m
 
 That will pick (randomly) only from `.zip` files that are 100Mb or less.
+
+
+## Generating `symbols-uploaded/YYYY-MM-DD.json.gz`
+
+Get an API token from [Crash-stats](https://crash-stats.mozilla.com/api/tokens/)
+with the `View all Symbol Uploads` permission. Then run:
+
+    AUTH_TOKEN=bdf6effac894491a8ebd0d1b15f3ab5a python generate-symbols-uploaded.py
