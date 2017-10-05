@@ -93,6 +93,7 @@ def _get_index(save_dir, days=0, max_size=None, silent=False):
     symbols_uploaded_file = random.choice(
         glob.glob(os.path.join(symbols_uploaded_dir, '*.json.gz'))
     )
+    print("SYMBOLS_UPLOADED_FILE:", symbols_uploaded_file)
     with gzip.open(symbols_uploaded_file, 'rb') as f:
         uploaded = json.loads(f.read().decode('utf-8'))
     all_uploads = uploaded['hits']
@@ -135,10 +136,12 @@ def _get_index(save_dir, days=0, max_size=None, silent=False):
 @deco.synchronized
 def download_all(urls, save_dir):
     print('Downloading into', save_dir)
-    # urls=urls[:16]
     downloaded = {x: False for x in urls}
     for url in urls:
-        download(url, save_dir, downloaded)
+        if url.endswith('/'):
+            print('Bad URL (ignoring) {}'.format(url))
+        else:
+            download(url, save_dir, downloaded)
     return downloaded
 
 
