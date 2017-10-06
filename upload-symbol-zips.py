@@ -212,8 +212,8 @@ def run(
                 )
             )
             os.remove(zip_)
-            if os.path.isfile(zip_ + '.locked'):
-                os.remove(zip_ + '.locked')
+        if os.path.isfile(zip_ + '.locked'):
+            os.remove(zip_ + '.locked')
 
     if upload_failures:
         raise click.ClickException(

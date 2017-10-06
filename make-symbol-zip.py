@@ -190,6 +190,13 @@ def run(save_dir=None, max_size=None, silent=False):
     with tempfile.TemporaryDirectory(prefix='symbols') as tmpdirname:
         t0 = time.time()
         downloaded = download_all(all_symbol_urls, tmpdirname)
+        if isinstance(downloaded, bool):
+            print("all_symbol_urls", all_symbol_urls)
+            raise Exception(
+                'The downloaded dict became a boolean! ({!r})'.format(
+                    downloaded,
+                )
+            )
         t1 = time.time()
         save_filepath = _make_filepath(save_dir, bundle)
         total_time_took = 0.0
