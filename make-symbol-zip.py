@@ -33,6 +33,10 @@ def sizeof_fmt(num, suffix='B'):
     return '%.1f%s%s' % (num, 'Yi', suffix)
 
 
+def seconds_fmt(t):
+    return '{:.2f}s'.format(t)
+
+
 def parse_file_size(s):
     parsed = re.findall('(\d+)([gmbk]+)', s)
     if not parsed:
@@ -73,14 +77,17 @@ def download(uri, save_dir, store):
     os.makedirs(dirname, exist_ok=True)
     basename = os.path.basename(path)
     fullpath = os.path.join(dirname, basename)
-    print(
-        response.status_code,
-        sizeof_fmt(int(response.headers['Content-Length'])).ljust(10),
-        urlparse(url).path.split('/v1')[1],
-    )
     with open(fullpath, 'wb') as f:
         f.write(response.content)
     t1 = time.time()
+    size = int(response.headers['Content-Length'])
+    print(
+        response.status_code,
+        sizeof_fmt(size).ljust(8),
+        seconds_fmt(t1 - t0).ljust(8),
+        (sizeof_fmt(size / (t1 - t0)) + '/s').ljust(8),
+        urlparse(url).path.split('/v1')[1],
+    )
     store[uri] = (fullpath, t1 - t0, int(response.headers['Content-Length']))
 
 
