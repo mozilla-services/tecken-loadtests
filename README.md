@@ -268,3 +268,13 @@ Get an API token from [Crash-stats](https://crash-stats.mozilla.com/api/tokens/)
 with the `View all Symbol Uploads` permission. Then run:
 
     AUTH_TOKEN=bdf6effac894491a8ebd0d1b15f3ab5a python generate-symbols-uploaded.py
+
+
+## Analyzing Symbol Uploads
+
+There's a script called `analyze-symbol-uploads-times.py` which gives insight
+into symbol upload times. Use it to analyze how concurrent uploads
+work/optimize. You need an auth token with the "View All Symbols Uploads"
+permission. Then run:
+
+    AUTH_TOKEN=66...92e python analyze-symbol-uploads-times.py --domain=symbols.stage.mozaws.net --limit=10
