@@ -211,7 +211,12 @@ def run(save_dir=None, max_size=None, silent=False):
         sizes = []
         times = []
         with zipfile.ZipFile(save_filepath, mode='w') as zf:
-            for uri, (fullpath, time_took, size) in downloaded.items():
+
+            for uri, download_result in downloaded.items():
+                if not download_result:
+                    print('Nothing downloaded for {}'.format(uri))
+                    continue
+                fullpath, time_took, size = download_result
                 total_time_took += time_took
                 times.append(time_took)
                 total_size += size
