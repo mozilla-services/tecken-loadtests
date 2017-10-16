@@ -15,6 +15,7 @@ import gzip
 import json
 import re
 import multiprocessing
+import concurrent.futures
 from urllib.parse import urlparse
 
 import click
@@ -66,6 +67,10 @@ def time_fmt(secs):
 
 @deco.concurrent
 def download(uri, save_dir, store):
+    store[uri] = _download(uri, save_dir)
+
+
+def _download(uri, save_dir):
     url = (
         'https://s3-us-west-2.amazonaws.com/'
         'org.mozilla.crash-stats.symbols-public/'
@@ -88,7 +93,7 @@ def download(uri, save_dir, store):
         (sizeof_fmt(size / (t1 - t0)) + '/s').ljust(8),
         urlparse(url).path.split('/v1')[1],
     )
-    store[uri] = (fullpath, t1 - t0, int(response.headers['Content-Length']))
+    return fullpath, t1 - t0, int(response.headers['Content-Length'])
 
 
 def _get_index(save_dir, days=0, max_size=None, silent=False):
@@ -152,6 +157,28 @@ def download_all(urls, save_dir):
     return downloaded
 
 
+def download_all_threads(urls, save_dir):
+    print('Downloading into', save_dir)
+    futures = {}
+    downloaded = {}
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+        for url in urls:
+            if url.endswith('/'):
+                print('Bad URL (ignoring) {}'.format(url))
+                continue
+            futures[
+                executor.submit(
+                    _download,
+                    url,
+                    save_dir
+                )
+            ] = url
+        for future in concurrent.futures.as_completed(futures):
+            url = futures[future]
+            downloaded[url] = future.result()
+    return downloaded
+
+
 def _make_filepath(save_dir, bundle):
     date = bundle['date'].split('.')[0].replace(':', '_')
     return os.path.join(
@@ -179,7 +206,14 @@ _default_save_dir = os.path.join(tempfile.gettempdir(), 'massive-symbol-zips')
     help='Will not prompt for an input and use random choice if need be',
     is_flag=True,
 )
-def run(save_dir=None, max_size=None, silent=False):
+@click.option(
+    '--use-threads',
+    help=(
+        'Use concurrent.futures.ThreadPoolExecutor instead of multiprocessing'
+    ),
+    is_flag=True,
+)
+def run(save_dir=None, max_size=None, silent=False, use_threads=False):
     if max_size:
         max_size = parse_file_size(max_size)
         print(
@@ -196,7 +230,10 @@ def run(save_dir=None, max_size=None, silent=False):
     print(len(all_symbol_urls), 'URLs to download')
     with tempfile.TemporaryDirectory(prefix='symbols') as tmpdirname:
         t0 = time.time()
-        downloaded = download_all(all_symbol_urls, tmpdirname)
+        if use_threads:
+            downloaded = download_all_threads(all_symbol_urls, tmpdirname)
+        else:
+            downloaded = download_all(all_symbol_urls, tmpdirname)
         if isinstance(downloaded, bool):
             print("all_symbol_urls", all_symbol_urls)
             raise Exception(
@@ -246,12 +283,18 @@ def run(save_dir=None, max_size=None, silent=False):
             'Download speed:'.ljust(P),
             sizeof_fmt(sum(sizes) / sum(times)) + '/s'
         )
+        download_speed = sum(sizes) / (t1 - t0)
         print(
             'Total time took:'.ljust(P),
             time_fmt(t1 - t0).ljust(P),
             'Download speed:'.ljust(P),
-            sizeof_fmt(sum(sizes) / (t1 - t0)) + '/s',
+            sizeof_fmt(download_speed) + '/s',
         )
+        with open('.downloadspeeds.log', 'a') as f:
+            f.write('{}\t{}\n'.format(
+                download_speed,
+                use_threads and 'threads' or 'multiprocessing'
+            ))
         print(
             'Total size (files):'.ljust(P),
             total_size,
