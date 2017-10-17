@@ -132,6 +132,89 @@ def upload(filepath, url, auth_token, max_retries=5, timeout=60):
         )
 
 
+def upload_by_download_url(
+    url,
+    auth_token,
+    download_url,
+    content_length,
+    max_retries=5,
+    timeout=60
+):
+    click.echo(click.style(
+        'About to upload {} ({}) to {}'.format(
+            download_url,
+            sizeof_fmt(content_length),
+            url,
+        ),
+        fg='green'
+    ))
+    retries = 0
+    sleeptime = 5
+    while True:
+        try:
+            t0 = time.time()
+            response = requests.post(
+                url,
+                data={'url': download_url},
+                headers={
+                    'auth-token': auth_token,
+                },
+                timeout=timeout,
+            )
+            if response.status_code == 502:
+                # force a re-attempt
+                raise BadGatewayError(response.content)
+            if response.status_code == 408 or response.status_code == 504:
+                # Nginx calmly says Gunicorn timed out. Force a re-attempt.
+                raise ReadTimeout(response.status_code)
+            t1 = time.time()
+            break
+        except (ReadTimeout, BadGatewayError) as exception:
+            t1 = time.time()
+            retries += 1
+            click.echo(click.style(
+                'Deliberately sleeping for {} seconds'.format(sleeptime),
+                fg='yellow'
+            ))
+            time.sleep(sleeptime)
+            if retries >= max_retries:
+                raise
+            click.echo(click.style(
+                'Retrying (after {:.1f}s) due to {}: {}'.format(
+                    t1 - t0,
+                    exception.__class__.__name__,
+                    exception,
+                ),
+                fg='yellow'
+            ))
+
+    if response.status_code == 201:
+        click.echo(click.style(
+            'Took {} seconds to upload by download url {} ({} - {}/s)'.format(
+                round(t1 - t0, 1),
+                download_url,
+                sizeof_fmt(content_length),
+                sizeof_fmt(content_length / (t1 - t0))
+            ),
+            fg='green'
+        ))
+        return True
+    else:
+        click.echo(click.style(
+            'Failed to upload! Status code: {}'.format(response.status_code)
+        ))
+        try:
+            click.echo(response.json())
+        except JSONDecodeError:
+            click.echo(response.content)
+        click.echo(
+            click.style(
+                'Failed to upload! Status: {}'.format(response.status_code),
+                fg='red'
+            )
+        )
+
+
 @click.command()
 @click.option(
     '--zips-dir',
@@ -139,13 +222,16 @@ def upload(filepath, url, auth_token, max_retries=5, timeout=60):
         _default_zips_dir,
     )
 )
-@click.option('--max-size', default='250mb', help=(
+@click.option('--max-size', default='1000mb', help=(
     'Max size of files to attempt to upload.'
 ))
 @click.option('-n', '--number', default=1, type=int)
-@click.option('-t', '--timeout', default=60, type=int)
+@click.option('-t', '--timeout', default=100, type=int)
 @click.option('--delete-uploaded-file', is_flag=True, help=(
     'Delete the file that was successfully uploaded.'
+))
+@click.option('-d', '--download-url', help=(
+    'Instead of upload a local file, post a URL to download'
 ))
 @click.argument('url', nargs=1, required=False)
 def run(
@@ -154,6 +240,7 @@ def run(
     zips_dir=None,
     max_size=None,
     delete_uploaded_file=False,
+    download_url=None,
     timeout=60,
 ):
     url = url or 'http://localhost:8000/upload/'
@@ -162,15 +249,49 @@ def run(
     elif urlparse(url).path == '/':
         url += 'upload/'
     assert url.endswith('/upload/'), url
-    zips_dir = zips_dir or _default_zips_dir
-    max_size = max_size or '250m'
-    max_size_bytes = parse_file_size(max_size)
     try:
         auth_token = os.environ['AUTH_TOKEN']
     except KeyError:
         raise click.ClickException(
             'You have to set environment variable AUTH_TOKEN first.'
         )
+
+    max_size = max_size or '250m'
+    max_size_bytes = parse_file_size(max_size)
+
+    if download_url:
+        if download_url.endswith('index.json'):
+            get = requests.get(download_url)
+            assert get.status_code == 200, get.status_code
+            files = get.json()['files']
+            files = [x for x in files if x['size'] < max_size_bytes]
+            file = random.choice(files)
+            download_url = download_url.replace('index.json', file['uri'])
+            content_length_bytes = file['size']
+        else:
+            head = requests.head(download_url)
+            if head.status_code >= 300 and head.status_code < 400:
+                head = requests.head(head.headers['location'])
+            assert head.status_code == 200, head.status_code
+            content_length_bytes = int(head.headers['Content-Length'])
+        if content_length_bytes > max_size_bytes:
+            raise click.ClickException(
+                '{} is {} but the max is {}'.format(
+                    download_url,
+                    sizeof_fmt(content_length_bytes),
+                    sizeof_fmt(max_size_bytes),
+                )
+            )
+        upload_by_download_url(
+            url,
+            auth_token,
+            download_url,
+            content_length_bytes,
+            timeout=timeout,
+        )
+        return
+
+    zips_dir = zips_dir or _default_zips_dir
     if not os.path.isdir(zips_dir):
         raise click.ClickException(
             'Directory {} does not exist'.format(zips_dir)
