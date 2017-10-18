@@ -55,7 +55,7 @@ def parse_file_size(s):
     return number
 
 
-def upload(filepath, url, auth_token, max_retries=5, timeout=60):
+def upload(filepath, url, auth_token, max_retries=5, timeout=300):
     basename = os.path.basename(filepath)
     click.echo(click.style(
         'About to upload {} ({}) to {}'.format(
@@ -138,7 +138,7 @@ def upload_by_download_url(
     download_url,
     content_length,
     max_retries=5,
-    timeout=60
+    timeout=300
 ):
     click.echo(click.style(
         'About to upload {} ({}) to {}'.format(
@@ -226,7 +226,7 @@ def upload_by_download_url(
     'Max size of files to attempt to upload.'
 ))
 @click.option('-n', '--number', default=1, type=int)
-@click.option('-t', '--timeout', default=100, type=int)
+@click.option('-t', '--timeout', default=300, type=int)
 @click.option('--delete-uploaded-file', is_flag=True, help=(
     'Delete the file that was successfully uploaded.'
 ))
@@ -241,7 +241,7 @@ def run(
     max_size=None,
     delete_uploaded_file=False,
     download_url=None,
-    timeout=60,
+    timeout=300,
 ):
     url = url or 'http://localhost:8000/upload/'
     if not urlparse(url).path:
