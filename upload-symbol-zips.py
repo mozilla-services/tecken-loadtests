@@ -323,18 +323,20 @@ def run(
     for zip_ in zips[:number]:
         with open(zip_ + '.locked', 'w') as f:
             f.write('locked {}\n'.format(time.time()))
-        successful = upload(zip_, url, auth_token, timeout=timeout)
-        if not successful:
-            upload_failures += 1
-        if successful and delete_uploaded_file:
-            click.style(
-                'Deleting zip file {}'.format(
-                    zip_
+        try:
+            successful = upload(zip_, url, auth_token, timeout=timeout)
+            if not successful:
+                upload_failures += 1
+            if successful and delete_uploaded_file:
+                click.style(
+                    'Deleting zip file {}'.format(
+                        zip_
+                    )
                 )
-            )
-            os.remove(zip_)
-        if os.path.isfile(zip_ + '.locked'):
-            os.remove(zip_ + '.locked')
+                os.remove(zip_)
+        finally:
+            if os.path.isfile(zip_ + '.locked'):
+                os.remove(zip_ + '.locked')
 
     if upload_failures:
         raise click.ClickException(
