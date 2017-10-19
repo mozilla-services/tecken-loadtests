@@ -14,7 +14,7 @@ from json.decoder import JSONDecodeError
 
 import click
 import requests
-from requests.exceptions import ReadTimeout
+from requests.exceptions import ReadTimeout, ConnectionError
 
 
 class BadGatewayError(Exception):
@@ -136,14 +136,14 @@ def upload_by_download_url(
     url,
     auth_token,
     download_url,
-    content_length,
+    content_length=None,
     max_retries=5,
     timeout=300
 ):
     click.echo(click.style(
         'About to upload {} ({}) to {}'.format(
             download_url,
-            sizeof_fmt(content_length),
+            'n/a' if content_length is None else sizeof_fmt(content_length),
             url,
         ),
         fg='green'
@@ -189,15 +189,25 @@ def upload_by_download_url(
             ))
 
     if response.status_code == 201:
-        click.echo(click.style(
-            'Took {} seconds to upload by download url {} ({} - {}/s)'.format(
-                round(t1 - t0, 1),
-                download_url,
-                sizeof_fmt(content_length),
-                sizeof_fmt(content_length / (t1 - t0))
-            ),
-            fg='green'
-        ))
+        if content_length is None:
+            click.echo(click.style(
+                'Took {} seconds to upload by download url {}'.format(
+                    round(t1 - t0, 1),
+                    download_url,
+                ),
+                fg='green'
+            ))
+        else:
+            click.echo(click.style(
+                'Took {} seconds to upload by download url '
+                '{} ({} - {}/s)'.format(
+                    round(t1 - t0, 1),
+                    download_url,
+                    sizeof_fmt(content_length),
+                    sizeof_fmt(content_length / (t1 - t0))
+                ),
+                fg='green'
+            ))
         return True
     else:
         click.echo(click.style(
@@ -267,18 +277,35 @@ def run(
             files = [x for x in files if x['size'] < max_size_bytes]
             file = random.choice(files)
             download_url = download_url.replace('index.json', file['uri'])
-            content_length_bytes = file['size']
+            content_length = file['size']
         else:
-            head = requests.head(download_url)
-            if head.status_code >= 300 and head.status_code < 400:
-                head = requests.head(head.headers['location'])
-            assert head.status_code == 200, head.status_code
-            content_length_bytes = int(head.headers['Content-Length'])
-        if content_length_bytes > max_size_bytes:
+            try:
+                head = requests.head(download_url)
+                if head.status_code >= 300 and head.status_code < 400:
+                    head = requests.head(head.headers['location'])
+                assert head.status_code == 200, head.status_code
+                content_length = int(head.headers['Content-Length'])
+            except ConnectionError:
+                click.echo(click.style(
+                    'Unable to HEAD check {} in advance to see its '
+                    'size. Proceeding anyway.'.format(
+                        download_url,
+                    ),
+                    fg='yellow'
+                ))
+                content_length = None
+        if (
+            content_length is not None and
+            content_length > max_size_bytes
+
+        ):
             raise click.ClickException(
                 '{} is {} but the max is {}'.format(
                     download_url,
-                    sizeof_fmt(content_length_bytes),
+                    (
+                        'n/a' if content_length is None
+                        else sizeof_fmt(content_length)
+                    ),
                     sizeof_fmt(max_size_bytes),
                 )
             )
@@ -286,7 +313,7 @@ def run(
             url,
             auth_token,
             download_url,
-            content_length_bytes,
+            content_length,
             timeout=timeout,
         )
         return
