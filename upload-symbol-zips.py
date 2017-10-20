@@ -281,8 +281,12 @@ def run(
         else:
             try:
                 head = requests.head(download_url)
-                if head.status_code >= 300 and head.status_code < 400:
+                attempts = 0
+                while head.status_code >= 300 and head.status_code < 400:
+                    attempts += 1
                     head = requests.head(head.headers['location'])
+                    if attempts >= 10:
+                        raise Exception('Near infinite redirect loop')
                 assert head.status_code == 200, head.status_code
                 content_length = int(head.headers['Content-Length'])
             except ConnectionError:
