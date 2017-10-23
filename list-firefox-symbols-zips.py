@@ -74,7 +74,12 @@ def get_content_length(url):
 
 
 if __name__ == '__main__':
-    n = 10
+    import sys
+    try:
+        n = int(sys.argv[1])
+    except IndexError:
+        n = 10
+    assert n > 0 and n < 100, n
     for url in itertools.islice(get_symbols_urls(), n):
         size = get_content_length(url)
         print(

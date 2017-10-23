@@ -9,6 +9,7 @@ import random
 import tempfile
 import time
 import glob
+import sys
 from urllib.parse import urlparse
 from json.decoder import JSONDecodeError
 
@@ -240,6 +241,9 @@ def upload_by_download_url(
 @click.option('--delete-uploaded-file', is_flag=True, help=(
     'Delete the file that was successfully uploaded.'
 ))
+@click.option('--download-urls-from-stdin', is_flag=True, help=(
+    'If set, expect to read a list of URLs from stdin.'
+))
 @click.option('-d', '--download-url', help=(
     'Instead of upload a local file, post a URL to download'
 ))
@@ -252,7 +256,15 @@ def run(
     delete_uploaded_file=False,
     download_url=None,
     timeout=300,
+    download_urls_from_stdin=False,
 ):
+    download_urls = []
+    if download_urls_from_stdin:
+        for line in sys.stdin:
+            for url_ in [x for x in line.split() if '://' in x]:
+                download_urls.append(url_)
+    elif download_url:
+        download_urls.append(download_url)
     url = url or 'http://localhost:8000/upload/'
     if not urlparse(url).path:
         url += '/upload/'
@@ -269,7 +281,7 @@ def run(
     max_size = max_size or '250m'
     max_size_bytes = parse_file_size(max_size)
 
-    if download_url:
+    for download_url in download_urls:
         if download_url.endswith('index.json'):
             get = requests.get(download_url)
             assert get.status_code == 200, get.status_code
@@ -320,6 +332,9 @@ def run(
             content_length,
             timeout=timeout,
         )
+
+    # If there were download URLs, don't bother reading a local dir.
+    if download_urls:
         return
 
     zips_dir = zips_dir or _default_zips_dir

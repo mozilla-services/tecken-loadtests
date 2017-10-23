@@ -278,3 +278,13 @@ work/optimize. You need an auth token with the "View All Symbols Uploads"
 permission. Then run:
 
     AUTH_TOKEN=66...92e python analyze-symbol-uploads-times.py --domain=symbols.stage.mozaws.net --limit=10
+
+## Uploading by Download URL from TaskCluster
+
+If you run `python list-firefox-symbols-zips.py 3` it will find 3 recent
+symbols builds URLs on TaskCluster. You can actually pipe them into the
+the `upload-symbol-zips.py` script. For example, this is how you do it
+for stage:
+
+    export AUTH_TOKEN=xxxxxxxStageAPITokenxxxxxxxxx
+    python list-firefox-symbols-zips.py 1 | python upload-symbol-zips.py https://symbols.stage.mozaws.net --download-urls-from-stdin
