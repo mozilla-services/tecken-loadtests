@@ -287,4 +287,4 @@ the `upload-symbol-zips.py` script. For example, this is how you do it
 for stage:
 
     export AUTH_TOKEN=xxxxxxxStageAPITokenxxxxxxxxx
-    python list-firefox-symbols-zips.py 1 | python upload-symbol-zips.py https://symbols.stage.mozaws.net --download-urls-from-stdin
+    python list-firefox-symbols-zips.py 1 | python upload-symbol-zips.py https://symbols.stage.mozaws.net --download-urls-from-stdin --max-size=2gb
