@@ -39,13 +39,13 @@ def seconds_fmt(t):
 
 
 def parse_file_size(s):
-    parsed = re.findall('(\d+)([gmbk]+)', s)
+    parsed = re.findall('([\d\.]+)([gmbk]+)', s)
     if not parsed:
         number = s
         unit = 'b'
     else:
         number, unit = parsed[0]
-    number = int(number)
+    number = float(number)
     unit = unit.lower()
 
     if unit == 'b':
