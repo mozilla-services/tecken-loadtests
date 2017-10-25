@@ -77,6 +77,13 @@ def _download(uri, save_dir):
     ) + uri.split(',', 1)[1]
     t0 = time.time()
     response = requests.get(url)
+    if response.status_code != 200:
+        raise Exception(
+            'Got {} trying to download {}'.format(
+                response.status_code,
+                url
+            )
+        )
     path = uri.split(',', 1)[1].replace('v1/', '')
     dirname = os.path.join(save_dir, os.path.dirname(path))
     os.makedirs(dirname, exist_ok=True)
