@@ -58,7 +58,7 @@ def parse_file_size(s):
         number *= 1024 * 1024 * 1024
     else:
         raise NotImplementedError(unit)
-    return number
+    return int(number)
 
 
 def time_fmt(secs):

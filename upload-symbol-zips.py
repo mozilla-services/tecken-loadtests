@@ -34,13 +34,13 @@ _default_zips_dir = os.path.join(tempfile.gettempdir(), 'massive-symbol-zips')
 
 
 def parse_file_size(s):
-    parsed = re.findall('(\d+)([gmbk]+)', s)
+    parsed = re.findall('([\d\.]+)([gmbk]+)', s)
     if not parsed:
         number = s
         unit = 'b'
     else:
         number, unit = parsed[0]
-    number = int(number)
+    number = float(number)
     unit = unit.lower()
 
     if unit == 'b':
@@ -53,7 +53,7 @@ def parse_file_size(s):
         number *= 1024 * 1024 * 1024
     else:
         raise NotImplementedError(unit)
-    return number
+    return int(number)
 
 
 def upload(filepath, url, auth_token, max_retries=5, timeout=300):
