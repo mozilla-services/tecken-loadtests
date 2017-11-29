@@ -22,7 +22,7 @@ import click
 def dump_and_extract(root_dir, file_buffer):
     zf = zipfile.ZipFile(file_buffer)
     zf.extractall(root_dir)
-
+    print(root_dir)
     total_files = 0
     total_dirs = 0
     for root, dirs, files in os.walk(root_dir):
