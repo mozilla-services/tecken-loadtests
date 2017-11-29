@@ -12,7 +12,9 @@ import glob
 import tempfile
 import time
 import statistics
+import shutil
 from io import BytesIO
+from contextlib import contextmanager
 
 import click
 
@@ -42,12 +44,28 @@ def time_fmt(t):
     return '%.3fs' % t
 
 
+@contextmanager
+def maketempdir(root, prefix='prefix'):
+    def randstr():
+        return prefix + str(int(random.random() * 100000))
+    fn = os.path.join(root, randstr())
+    os.mkdir(fn)
+    yield fn
+    shutil.rmtree(fn)
+
+
 @click.command()
+@click.option(
+    '-t', '--tmp-dir-root',
+    default=None,
+    help='Root for the temporary directories'
+)
 @click.argument('directory', nargs=1)
-def run(directory):
+def run(directory, tmp_dir_root=None):
+    if tmp_dir_root is None:
+        tmp_dir_root = tempfile.gettempdir()
     files = glob.glob(os.path.join(directory, '*.zip'))
     random.shuffle(files)
-    # print(files)
     times = []
     speeds = []
     files_created = []
@@ -56,7 +74,7 @@ def run(directory):
         with open(fn, 'rb') as f:
             in_memory = f.read()
         size = len(in_memory)
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with maketempdir(tmp_dir_root) as tmpdir:
             t0 = time.time()
             tf, td = dump_and_extract(tmpdir, BytesIO(in_memory))
             t1 = time.time()
