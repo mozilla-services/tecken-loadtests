@@ -85,11 +85,11 @@ def run(directory):
     print()
     print(
         "Average files created:      ",
-        statistics.mean(files_created)
+        int(statistics.mean(files_created))
     )
     print(
         "Average directories created:",
-        statistics.mean(dirs_created)
+        int(statistics.mean(dirs_created))
     )
 
 
