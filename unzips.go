@@ -29,20 +29,15 @@ func DumpAndExtract(dest string, buffer []byte, name string) {
 			log.Fatal(err)
 		}
 		defer rc.Close()
-
 		fpath := filepath.Join(dest, f.Name)
-
 		if f.FileInfo().IsDir() {
-			// Make Folder
 			os.MkdirAll(fpath, os.ModePerm)
-
 		} else {
 			// Make File
 			var fdir string
 			if lastIndex := strings.LastIndex(fpath, string(os.PathSeparator)); lastIndex > -1 {
 				fdir = fpath[:lastIndex]
 			}
-
 			err = os.MkdirAll(fdir, os.ModePerm)
 			if err != nil {
 				log.Fatal(err)
@@ -58,10 +53,8 @@ func DumpAndExtract(dest string, buffer []byte, name string) {
 			if err != nil {
 				log.Fatal(err)
 			}
-
 		}
 	}
-
 }
 
 func Shuffle(array []string) {
@@ -81,12 +74,12 @@ func Average(xs []float64) float64 {
 }
 
 func Median(numbers []float64) float64 {
-    middle := len(numbers) / 2
-    result := numbers[middle]
-    if len(numbers)%2 == 0 {
-        result = (result + numbers[middle-1]) / 2
-    }
-    return result
+	middle := len(numbers) / 2
+	result := numbers[middle]
+	if len(numbers)%2 == 0 {
+		result = (result + numbers[middle-1]) / 2
+	}
+	return result
 }
 
 func main() {
