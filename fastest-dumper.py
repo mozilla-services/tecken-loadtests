@@ -45,6 +45,7 @@ def run(directory):
     random.shuffle(files)
     # print(files)
     times = []
+    speeds = []
     for fn in files:
         name = os.path.basename(fn)
         with open(fn, 'rb') as f:
@@ -62,6 +63,7 @@ def run(directory):
             time_fmt(time_),
         )
         times.append((speed, size, time_))
+        speeds.append(speed)
     print('\n')
     # times.sort()
     # speeds = []

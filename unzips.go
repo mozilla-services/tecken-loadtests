@@ -122,11 +122,12 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		defer os.RemoveAll(tmpdir) // clean up
+
 		size := int64(len(content))
 		t0 := time.Now()
 		DumpAndExtract(tmpdir, content, filename)
 		t1 := time.Now()
+		os.RemoveAll(tmpdir) // clean up
 		speed := float64(size) / t1.Sub(t0).Seconds()
 		speeds = append(speeds, speed)
 		fmt.Printf(
