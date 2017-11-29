@@ -13,13 +13,12 @@ import (
 	"strings"
 	"time"
 
+	// Remember to...  go get github.com/pyk/byten
 	"github.com/pyk/byten"
 )
 
 func DumpAndExtract(dest string, buffer []byte, name string) {
 	size := int64(len(buffer))
-	// fmt.Println(name)
-	// fmt.Println(size)
 	zipReader, err := zip.NewReader(bytes.NewReader(buffer), size)
 	if err != nil {
 		log.Fatal(err)
@@ -28,21 +27,16 @@ func DumpAndExtract(dest string, buffer []byte, name string) {
 		rc, err := f.Open()
 		if err != nil {
 			log.Fatal(err)
-			// return filenames, err
 		}
 		defer rc.Close()
 
-		// Store filename/path for returning and using later on
 		fpath := filepath.Join(dest, f.Name)
-		// filenames = append(filenames, fpath)
 
 		if f.FileInfo().IsDir() {
-
 			// Make Folder
 			os.MkdirAll(fpath, os.ModePerm)
 
 		} else {
-
 			// Make File
 			var fdir string
 			if lastIndex := strings.LastIndex(fpath, string(os.PathSeparator)); lastIndex > -1 {
@@ -52,25 +46,21 @@ func DumpAndExtract(dest string, buffer []byte, name string) {
 			err = os.MkdirAll(fdir, os.ModePerm)
 			if err != nil {
 				log.Fatal(err)
-				// return filenames, err
 			}
 			f, err := os.OpenFile(
 				fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
 			if err != nil {
 				log.Fatal(err)
-				// return filenames, err
 			}
 			defer f.Close()
 
 			_, err = io.Copy(f, rc)
 			if err != nil {
 				log.Fatal(err)
-				// return filenames, err
 			}
 
 		}
 	}
-	// defer zipReader.Close()
 
 }
 
@@ -116,8 +106,6 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		// defer file.Close()
-		// fmt.Println(content)
 		tmpdir, err := ioutil.TempDir("", "extracthere")
 		if err != nil {
 			log.Fatal(err)

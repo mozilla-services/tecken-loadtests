@@ -65,17 +65,6 @@ def run(directory):
         times.append((speed, size, time_))
         speeds.append(speed)
     print('\n')
-    # times.sort()
-    # speeds = []
-    # for speed, size, time_ in times:
-    #     print(
-    #         (sizeof_fmt(speed) + '/s').ljust(20),
-    #         sizeof_fmt(size).ljust(20),
-    #         time_fmt(time_),
-    #     )
-    #     speeds.append(speed)
-    #
-    # print('\n')
     avg_speed = statistics.mean(speeds)
     print(
         "Average speed:",
