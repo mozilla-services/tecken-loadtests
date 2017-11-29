@@ -43,25 +43,24 @@ def time_fmt(t):
 def run(directory):
     files = glob.glob(os.path.join(directory, '*.zip'))
     random.shuffle(files)
+    # print(files)
     times = []
-    with tempfile.TemporaryDirectory() as tmpdir:
-        for fn in files:
-            name = os.path.basename(fn)
-            with open(fn, 'rb') as f:
-                in_memory = f.read()
-            size = len(in_memory)
+    for fn in files:
+        name = os.path.basename(fn)
+        with open(fn, 'rb') as f:
+            in_memory = f.read()
+        size = len(in_memory)
+        with tempfile.TemporaryDirectory() as tmpdir:
             t0 = time.time()
             dump_and_extract(tmpdir, BytesIO(in_memory), name)
             t1 = time.time()
-            times.append((size / (t1 - t0), size, t1 - t0))
+        times.append((size / (t1 - t0), size, t1 - t0))
     times.sort()
     speeds = []
     for speed, size, time_ in times:
         print(
-            sizeof_fmt(speed) + '/s',
-            '\t',
-            sizeof_fmt(size),
-            '\t',
+            (sizeof_fmt(speed) + '/s').ljust(20),
+            sizeof_fmt(size).ljust(20),
             time_fmt(time_),
         )
         speeds.append(speed)
