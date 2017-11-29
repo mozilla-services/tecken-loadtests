@@ -17,13 +17,17 @@ from io import BytesIO
 import click
 
 
-def dump_and_extract(root_dir, file_buffer, name):
-    if name.lower().endswith('.zip'):
-        zf = zipfile.ZipFile(file_buffer)
-        zf.extractall(root_dir)
-    else:
-        raise ValueError(os.path.splitext(name)[1])
-    return root_dir
+def dump_and_extract(root_dir, file_buffer):
+    zf = zipfile.ZipFile(file_buffer)
+    zf.extractall(root_dir)
+
+    total_files = 0
+    total_dirs = 0
+    for root, dirs, files in os.walk(root_dir):
+        total_files += len(files)
+        total_dirs += len(dirs)
+
+    return total_dirs, total_files
 
 
 def sizeof_fmt(num, suffix='B'):
@@ -46,15 +50,18 @@ def run(directory):
     # print(files)
     times = []
     speeds = []
+    files_created = []
+    dirs_created = []
     for fn in files:
-        name = os.path.basename(fn)
         with open(fn, 'rb') as f:
             in_memory = f.read()
         size = len(in_memory)
         with tempfile.TemporaryDirectory() as tmpdir:
             t0 = time.time()
-            dump_and_extract(tmpdir, BytesIO(in_memory), name)
+            tf, td = dump_and_extract(tmpdir, BytesIO(in_memory))
             t1 = time.time()
+            files_created.append(tf)
+            dirs_created.append(td)
         time_ = t1 - t0
         speed = size / time_
         print(
@@ -74,6 +81,15 @@ def run(directory):
     print(
         "Median speed: ",
         sizeof_fmt(med_speed) + '/s',
+    )
+    print()
+    print(
+        "Average files created:      ",
+        statistics.mean(files_created)
+    )
+    print(
+        "Average directories created:",
+        statistics.mean(dirs_created)
     )
 
 
