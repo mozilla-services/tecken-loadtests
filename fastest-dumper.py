@@ -54,7 +54,15 @@ def run(directory):
             t0 = time.time()
             dump_and_extract(tmpdir, BytesIO(in_memory), name)
             t1 = time.time()
-        times.append((size / (t1 - t0), size, t1 - t0))
+        time_ = t1 - t0
+        speed = size / time_
+        print(
+            (sizeof_fmt(speed) + '/s').ljust(20),
+            sizeof_fmt(size).ljust(20),
+            time_fmt(time_),
+        )
+        times.append((speed, size, time_))
+    print('\n')
     times.sort()
     speeds = []
     for speed, size, time_ in times:
