@@ -21,10 +21,11 @@ import click
 
 class DevNullZipFile(zipfile.ZipFile):
     def _extract_member(self, member, targetpath, pwd):
-        if member.is_dir():
+        # member.is_dir() only works in Python 3.6
+        if member.filename[-1] == '/':
             return targetpath
-        filename = os.path.basename(member.filename)
-        with self.open(member, pwd=pwd) as source, open(filename, "wb") as target:  # noqa
+        dest = '/dev/null'
+        with self.open(member, pwd=pwd) as source, open(dest, "wb") as target:
             shutil.copyfileobj(source, target)
         return targetpath
 
