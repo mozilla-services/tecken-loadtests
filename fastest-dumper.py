@@ -19,8 +19,18 @@ from contextlib import contextmanager
 import click
 
 
-def dump_and_extract(root_dir, file_buffer):
-    zf = zipfile.ZipFile(file_buffer)
+class DevNullZipFile(zipfile.ZipFile):
+    def _extract_member(self, member, targetpath, pwd):
+        if member.is_dir():
+            return targetpath
+        filename = os.path.basename(member.filename)
+        with self.open(member, pwd=pwd) as source, open(filename, "wb") as target:  # noqa
+            shutil.copyfileobj(source, target)
+        return targetpath
+
+
+def dump_and_extract(root_dir, file_buffer, klass):
+    zf = klass(file_buffer)
     zf.extractall(root_dir)
 
     total_files = 0
@@ -60,8 +70,13 @@ def maketempdir(root, prefix='prefix'):
     default=None,
     help='Root for the temporary directories'
 )
+@click.option(
+    '-d', '--dev-null',
+    is_flag=True,
+    help='Write to /dev/null instead'
+)
 @click.argument('directory', nargs=1)
-def run(directory, tmp_dir_root=None):
+def run(directory, tmp_dir_root=None, dev_null=False):
     if tmp_dir_root is None:
         tmp_dir_root = tempfile.gettempdir()
     files = glob.glob(os.path.join(directory, '*.zip'))
@@ -70,13 +85,17 @@ def run(directory, tmp_dir_root=None):
     speeds = []
     files_created = []
     dirs_created = []
+    if dev_null:
+        klass = DevNullZipFile
+    else:
+        klass = zipfile.ZipFile
     for fn in files:
         with open(fn, 'rb') as f:
             in_memory = f.read()
         size = len(in_memory)
         with maketempdir(tmp_dir_root) as tmpdir:
             t0 = time.time()
-            tf, td = dump_and_extract(tmpdir, BytesIO(in_memory))
+            tf, td = dump_and_extract(tmpdir, BytesIO(in_memory), klass=klass)
             t1 = time.time()
             files_created.append(tf)
             dirs_created.append(td)
