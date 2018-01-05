@@ -9,6 +9,7 @@ import random
 import tempfile
 from urllib.parse import urlparse
 
+import click
 import requests
 from requests.exceptions import ConnectionError
 
@@ -118,7 +119,16 @@ def post_patiently(url, **kwargs):
         return post_patiently(url, attempts=attempts + 1, **kwargs)
 
 
-def run(input_dir, url):
+@click.command()
+@click.option(
+    '--limit', '-l',
+    default=None,
+    type=int,
+    help='Max. number of iterations (default infinity)'
+)
+@click.argument('input_dir')
+@click.argument('url')
+def run(input_dir, url, limit=None):
     files_count = wc_dir(input_dir)
     print(format(files_count, ','), 'FILES')
     print()
@@ -281,6 +291,8 @@ def run(input_dir, url):
                 print(out, end='')
                 print('\r' * len(out), end='')
                 time.sleep(0.05)
+            if limit is not None and i == limit - 1:
+                break
     except KeyboardInterrupt:
         print_total_debugs(False)
         return 1
@@ -290,5 +302,4 @@ def run(input_dir, url):
 
 
 if __name__ == '__main__':
-    import sys
-    sys.exit(run(*sys.argv[1:]))
+    run()
