@@ -158,7 +158,7 @@ def run(input_dir, url, limit=None):
 
         print('\n')
         print('IN CONCLUSION...')
-        if one['downloads']['count'] and one['downloads']['time']:
+        if one['downloads']['count'] and sum(one['downloads']['time']):
             print(
                 'Final Average Download Speed'.ljust(P),
                 '{}/s'.format(
