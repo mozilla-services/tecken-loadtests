@@ -125,6 +125,12 @@ def post_patiently(url, **kwargs):
 @click.argument('url')
 @click.argument('file', nargs=-1)
 def run(url, file, debug_only=False):
+    url_parsed = urlparse(url)
+    if not url_parsed.path or url_parsed.path == '/':
+        # Assume version 5
+        if not url_parsed.path:
+            url += '/'
+        url += 'symbolicate/v5'
 
     for i, fp in enumerate(file):
         print(

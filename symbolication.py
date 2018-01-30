@@ -129,6 +129,12 @@ def post_patiently(url, **kwargs):
 @click.argument('input_dir')
 @click.argument('url')
 def run(input_dir, url, limit=None):
+    url_parsed = urlparse(url)
+    if not url_parsed.path or url_parsed.path == '/':
+        # Assume version 5
+        if not url_parsed.path:
+            url += '/'
+        url += 'symbolicate/v5'
     files_count = wc_dir(input_dir)
     print(format(files_count, ','), 'FILES')
     print()
