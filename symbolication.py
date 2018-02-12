@@ -126,15 +126,22 @@ def post_patiently(url, **kwargs):
     type=int,
     help='Max. number of iterations (default infinity)'
 )
+@click.option(
+    '--batch-size', '-b',
+    default=1,
+    type=int,
+    help='Number of jobs to bundle per symbolication (only if /symbolicate/v5)'
+)
 @click.argument('input_dir')
 @click.argument('url')
-def run(input_dir, url, limit=None):
+def run(input_dir, url, limit=None, batch_size=1):
     url_parsed = urlparse(url)
     if not url_parsed.path or url_parsed.path == '/':
         # Assume version 5
         if not url_parsed.path:
             url += '/'
         url += 'symbolicate/v5'
+    assert urlparse(url).path.endswith('/v5'), url
     files_count = wc_dir(input_dir)
     print(format(files_count, ','), 'FILES')
     print()
@@ -222,6 +229,7 @@ def run(input_dir, url, limit=None):
         return '{:.1f}'.format(L * 60 / t)
 
     files = [os.path.join(input_dir, x) for x in os.listdir(input_dir)]
+    print("Got", len(files), 'files')
     random.shuffle(files)
 
     now = datetime.datetime.now().strftime('%Y%m%d')
@@ -232,9 +240,17 @@ def run(input_dir, url, limit=None):
     print('All verbose logging goes into:', logfile_path)
     print()
     try:
+        bundle = []
         for i, fp in enumerate(files):
             with open(fp) as f, open(logfile_path, 'a') as logfile:
                 payload = json.loads(f.read())
+                payload.pop('version', None)
+                bundle.append(payload)
+                if len(bundle) < batch_size:
+                    continue
+                else:
+                    payload = {'jobs': list(bundle)}
+                    bundle = []
 
                 print("PAYLOAD (as JSON)", file=logfile)
                 print('-' * 79, file=logfile)
@@ -252,35 +268,81 @@ def run(input_dir, url, limit=None):
                 print('-' * 79, file=logfile)
                 print(json.dumps(r), file=logfile)
                 print('-' * 79, file=logfile)
+                # memory_map = set()
+                for i, job in enumerate(payload['jobs']):
+                    result = r['results'][i]
+                    print("JOB")
+                    print(job)
+                    print("RESULT")
+                    print(result)
+                    for x, frames in enumerate(result['stacks']):
+                        for y, frame in enumerate(frames):
+                            stack = job['stacks'][x][y]
+                            print("STACK", stack)
+                            module_index = stack[0]
+                            
+                            print("FRAMES", frame)
+                            raise Exception
+                    raise Exception
+                    # for j, combo in enumerate(job['memoryMap']):
+
+                        # print(combo, '-->', r['results'][i]['knownModules'][j], file=logfile)
+                #     for combo in job['memoryMap']:
+                #         memory_map.add(tuple(combo))
+                # memory_map = list(memory_map)
+                # x=r['results'][0]
+                # x.pop('debug')
+                # print(x)
+                # known_modules = {}
+                # XXX https://bugzilla.mozilla.org/show_bug.cgi?id=1434350
                 for j, combo in enumerate(payload['memoryMap']):
                     print(combo, '-->', r['knownModules'][j], file=logfile)
-                print('=' * 79, file=logfile)
-                print(file=logfile)
-
-                debug = r['debug']
-                debug['modules'].pop('stacks_per_module')
+                # for combo in memory_map:
+                #     print("COMBO", combo)
+                #     print(combo, '-->', r['knownModules'][j], file=logfile)
+                # print('=' * 79, file=logfile)
+                # print(file=logfile)
                 times.append(t0)
-                # debug['loader_time'] = t1 - t0
-                all_debugs.append(debug)
+                debug_downloads_counts = []
+                debug_downloads_times = []
+                debug_downloads_sizes = []
+                cache_lookups_counts = []
+                cache_lookups_times = []
+                modules_counts = []
+                downloads_counts = []
+                for result in r['results']:
+                    debug = result['debug']
+                    debug['modules'].pop('stacks_per_module')
+                    debug_downloads_counts.append(debug['downloads']['count'])
+                    debug_downloads_times.append(debug['downloads']['time'])
+                    debug_downloads_sizes.append(debug['downloads']['size'])
+                    cache_lookups_counts.append(
+                        debug['cache_lookups']['count']
+                    )
+                    cache_lookups_times.append(debug['cache_lookups']['time'])
+                    modules_counts.append(debug['modules']['count'])
+                    downloads_counts.append(debug['downloads']['count'])
+                    # debug['loader_time'] = t1 - t0
+                    all_debugs.append(debug)
+
                 _downloads = (
                     '{} downloads ({}, {})'.format(
-                        debug['downloads']['count'],
-                        time_fmt(debug['downloads']['time']),
-                        sizeof_fmt(debug['downloads']['size']),
+                        sum(debug_downloads_counts),
+                        time_fmt(sum(debug_downloads_times)),
+                        sizeof_fmt(sum(debug_downloads_sizes)),
                     )
                 )
                 _cache_lookups = (
                     '{} ({}) cache lookup{} ({} -- {}/lookup)'.format(
-                        debug['cache_lookups']['count'],
+                        sum(cache_lookups_counts),
                         (
-                            debug['modules']['count'] -
-                            debug['downloads']['count']
+                            sum(modules_counts) - sum(downloads_counts)
                         ),
-                        debug['cache_lookups']['count'] > 1 and 's' or '',
-                        time_fmt(debug['cache_lookups']['time']),
+                        sum(cache_lookups_counts) > 1 and 's' or '',
+                        time_fmt(sum(cache_lookups_times)),
                         time_fmt(
-                            debug['cache_lookups']['time'] /
-                            debug['cache_lookups']['count']
+                            sum(cache_lookups_times) /
+                            sum(cache_lookups_counts)
                         ),
                     )
                 )
