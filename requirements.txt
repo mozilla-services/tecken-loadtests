@@ -1,5 +1,5 @@
 click==6.7
-requests==2.18.4
-molotov==1.4
+requests==2.19.1
+molotov==1.6
 deco==0.5.2
-python-dateutil==2.6.1
+python-dateutil==2.7.3

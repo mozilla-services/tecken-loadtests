@@ -10,7 +10,7 @@ and the Download service with tonnes of symbol URL requests.
 2. Run a Python that has
 [`requests`](http://requests.readthedocs.io/en/master/) installed.
 
-3. Type something like `python download.py http://localhost:8000 symbol-queries-groups.csv`
+3. Type something like `python download.py http://localhost:8000 downloading/symbol-queries-groups.csv`
 assuming you have the download server running at `localhost:8000`
 
 4. Sit and watch it or kill it with `Ctrl-C`. If you kill it before it
