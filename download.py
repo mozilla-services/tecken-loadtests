@@ -1,5 +1,3 @@
-from __future__ import print_function  # in case you use py2
-
 import os
 import time
 import random
@@ -76,7 +74,12 @@ def _stats(numbers):
         )
 
 
-def run(base_url, csv_file, socorro_missing_csv_file=None):
+def run(
+    base_url,
+    csv_file,
+    socorro_missing_csv_file=None,
+    only_microsoft_like_symbols=False,
+):
     uris_count = wc_file(csv_file)
     print(format(uris_count, ','), 'LINES')
     print('\n')
@@ -227,6 +230,15 @@ def run(base_url, csv_file, socorro_missing_csv_file=None):
 
     flattened_jobs = []
     for uri, status, private, count in jobs:
+        if only_microsoft_like_symbols:
+            if not uri.endswith('.sym'):
+                continue
+            try:
+                if not uri.split('/')[-3].endswith('.pdb'):
+                    continue
+            except IndexError:
+                continue
+
         for i in range(int(count)):
             flattened_jobs.append((
                 uri, status, private, 1
@@ -336,4 +348,9 @@ def run(base_url, csv_file, socorro_missing_csv_file=None):
 
 if __name__ == '__main__':
     import sys
-    sys.exit(run(*sys.argv[1:]))
+    args = sys.argv[1:]
+    kwargs = {}
+    if '--microsoft-like-only' in args:
+        kwargs['only_microsoft_like_symbols'] = True
+        args.remove('--microsoft-like-only')
+    sys.exit(run(*args, **kwargs))
