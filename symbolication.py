@@ -269,21 +269,21 @@ def run(input_dir, url, limit=None, batch_size=1):
                 print(json.dumps(r), file=logfile)
                 print('-' * 79, file=logfile)
                 # memory_map = set()
-                for i, job in enumerate(payload['jobs']):
-                    result = r['results'][i]
-                    print("JOB")
-                    print(job)
-                    print("RESULT")
-                    print(result)
-                    for x, frames in enumerate(result['stacks']):
-                        for y, frame in enumerate(frames):
-                            stack = job['stacks'][x][y]
-                            print("STACK", stack)
-                            module_index = stack[0]
-                            
-                            print("FRAMES", frame)
-                            raise Exception
-                    raise Exception
+                # for i, job in enumerate(payload['jobs']):
+                #     result = r['results'][i]
+                #     print("JOB")
+                #     print(job)
+                #     print("RESULT")
+                #     print(result)
+                #     for x, frames in enumerate(result['stacks']):
+                #         for y, frame in enumerate(frames):
+                #             stack = job['stacks'][x][y]
+                #             print("STACK", stack)
+                #             module_index = stack[0]
+
+                #             print("FRAMES", frame)
+                #             raise Exception
+                #     raise Exception
                     # for j, combo in enumerate(job['memoryMap']):
 
                         # print(combo, '-->', r['results'][i]['knownModules'][j], file=logfile)
@@ -295,8 +295,9 @@ def run(input_dir, url, limit=None, batch_size=1):
                 # print(x)
                 # known_modules = {}
                 # XXX https://bugzilla.mozilla.org/show_bug.cgi?id=1434350
-                for j, combo in enumerate(payload['memoryMap']):
-                    print(combo, '-->', r['knownModules'][j], file=logfile)
+
+                # for j, combo in enumerate(payload['memoryMap']):
+                #     print(combo, '-->', r['knownModules'][j], file=logfile)
                 # for combo in memory_map:
                 #     print("COMBO", combo)
                 #     print(combo, '-->', r['knownModules'][j], file=logfile)
