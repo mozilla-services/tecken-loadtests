@@ -1,3 +1,7 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
 """The purpose of this script is to upload random .zip files.
 By default you send them to http://localhost:8000/upload
 By default it only uploads 1.

@@ -1,10 +1,14 @@
-import os
-import time
-import random
-import csv
-import statistics
-from urllib.parse import urljoin
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
 from collections import defaultdict
+import csv
+import os
+import random
+import statistics
+import time
+from urllib.parse import urljoin
 
 import requests
 from requests.exceptions import ConnectionError
