@@ -2,3 +2,5 @@ symbol-queries.csv
 downloadlogs/
 .downloadspeeds.log
 .vscode
+my.env
+.docker-build

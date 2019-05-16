@@ -1,9 +1,13 @@
 # Molotov testing Tecken.
 
-'''
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+"""
 Depends on reading the ./stacks/ directory,
 ./downloading/symbol-queries-groups.csv and ./downloading/socorro-missing.csv
-'''
+"""
 
 import csv
 import os
@@ -102,14 +106,15 @@ async def worker_starts(worker_id, args):
 
 @molotov.scenario(40)
 async def scenario_symbolication(session):
+    headers = {'Content-Type': 'application/json'}
+
     with open(get_var('stacks').pop()) as f:
-        stack = json.load(f)
-    url = get_var('url_server') + '/symbolicate/v4'
-    async with session.post(url, json=stack) as resp:
-        assert resp.status == 200
-        res = await resp.json()
-        assert 'knownModules' in res
-        assert 'symbolicatedStacks' in res
+        url = get_var('url_server') + '/symbolicate/v4'
+        async with session.post(url, data=f, headers=headers) as resp:
+            assert resp.status == 200
+            data = await resp.json()
+            assert 'knownModules' in data
+            assert 'symbolicatedStacks' in data
 
 
 @molotov.scenario(60)
@@ -132,4 +137,6 @@ async def scenario_download(session):
         elif resp.status == 302:
             # If it was a redirect, make sure the location header
             # stil has the job uri in it.
-            assert job[0] in resp.headers['location']
+            location = resp.headers['location']
+            err = 'Bad location %r, want %r' % (location, job[0])
+            assert job[0] in location, err
