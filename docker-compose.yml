@@ -1,0 +1,11 @@
+version: '2'
+
+services:
+  base:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: tecken-loadtest:latest
+    volumes:
+      - $PWD:/app
+    command: /bin/bash
