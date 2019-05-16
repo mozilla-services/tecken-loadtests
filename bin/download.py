@@ -2,6 +2,14 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+"""
+Downloads urls from a file in the form of::
+
+    URI,STATUS CODE,PRIVATE,COUNT
+
+and reports responses and timings.
+"""
+
 from collections import defaultdict
 import csv
 import os
@@ -40,13 +48,13 @@ def time_fmt(x):
     return '{:.3f}s'.format(x)
 
 
-def wc_dir(fd):
-    return len(os.listdir(fd))
+def wc_dir(path):
+    return len(os.listdir(path))
 
 
-def wc_file(fd):
-    with open(fd) as f:
-        return f.read().count('\n')
+def wc_file(path):
+    with open(path) as fp:
+        return fp.read().count('\n')
 
 
 def listify(d):
@@ -283,7 +291,7 @@ def run(
                 params['code_file'] = code_file
                 params['code_id'] = code_id
 
-            (t1, t0), r = get_patiently(
+            (t1, t0), resp = get_patiently(
                 url,
                 params=params,
                 headers={
@@ -291,8 +299,8 @@ def run(
                 }
             )
             try:
-                internal_time = float(r.headers['debug-time'])
-                if r.headers['debug-time'] == '0':
+                internal_time = float(resp.headers['debug-time'])
+                if resp.headers['debug-time'] == '0':
                     ignore_hits += 1
                 elif internal_time < 0.01:
                     cache_hits.append(True)
@@ -338,7 +346,7 @@ def run(
             times.append(t0)
             jobs_done.append({
                 'expect': int(status_code),
-                'got': r.status_code,
+                'got': resp.status_code,
                 'time': t1 - t0,
                 'internal_time': internal_time
             })
