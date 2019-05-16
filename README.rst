@@ -5,31 +5,47 @@ Ability to bombard `Mozilla Symbol Server <https://github.com/mozilla-services/t
 Symbolication service with tons of stacks as stored in ``.json`` files and the
 Download service with tons of symbol URL requests.
 
-To Use (for Downloads)
-----------------------
+Setup
+-----
 
-1. Download or clone this repo.
+1. Clone the repo.
 
-2. Run a Python that has
-   `requests <http://requests.readthedocs.io/en/master/>`__
-   installed.
+2. Run ``make build`` to build the Docker container.
 
-3. Type something like::
+Getting TaskCluster Artifact URLs
+---------------------------------
 
-       python download.py http://localhost:8000 downloading/symbol-queries-groups.csv
+Builds are made on TaskCluster, as an artifact it builds symbols zip
+files. To get a list of recent ones of these for local development or
+load testing run the script:
 
-   assuming you have the download server running at ``localhost:8000``
+::
 
-3. Sit and watch it or kill it with ``Ctrl-C``. If you kill it before it
-   finishes (finishing is likely to take hours) stats are printed out
-   with what's been accomplished so far.
+   $ make shell
+   app@...:/app$ python bin/list-firefox-symbols-zips.py
+
+Each URL can be used to test symbol upload by URL.
+
+Testing downloads: bin/download.py
+----------------------------------
+
+1. Run::
+
+       $ make shell
+       app@...:/app$ python bin/download.py HOST downloading/symbol-queries-groups.csv
+
+   to run it against HOST.
+
+2. Sit and watch it or kill it with ``Ctrl-C``. If you kill it before it
+   finishes stats are printed out with what's been accomplished so far.
 
 **Alternatively** you can do the same but add another CSV file that
 contains looks for ``code_file`` and ``code_id``. For example:
 
 ::
 
-   python download.py http://localhost:8000 downloading/symbol-queries-groups.csv downloading/socorro-missing.csv
+   $ make shell
+   app@...:/app$ python download.py HOST downloading/symbol-queries-groups.csv downloading/socorro-missing.csv
 
 That second file is expected to have the following header:
 
@@ -38,10 +54,7 @@ That second file is expected to have the following header:
    debug_file,debug_id,code_file,code_id
 
 
-How To Interpret The Results (for Downloads)
---------------------------------------------
-
-The results look like this after running for a while:
+The results look like this:
 
 ::
 
@@ -53,56 +66,34 @@ The results look like this after running for a while:
    404                     274        0.644s        0.651s        0.564s        0.660s         95.62
    302                      28        0.657s        0.639s        0.693s        0.663s        100.00
 
-That means that 302 URLs were sent in. In 95.62% of the cases, Tecken
-also found that the symbol file didn't exist (compared with what was the
-case when the CSV file was made). And there were 28 requests where the
-symbol existed and was able to redirect to an absolute S3 URL.
+That means that 302 URLs were sent in. In 95.62% of the cases, Tecken also
+found that the symbol file didn't exist (compared with what was the case when
+the CSV file was made). And there were 28 requests where the symbol existed and
+was able to redirect to an absolute url for the symbol file.
 
 The ``(INTERNAL)`` is the median and average of the seconds it took the
-*server*, internally, to make the lookup. So if a look up took 0.6
-seconds and 0.5 seconds internally, it means there was an 0.1 second
-overhead of making the request to Tecken. In that case, the 0.5 is
-basically purely the time it takes Tecken to talk to S3. But mind you,
-Tecken can iterate over a list of S3 sources. It's not possible to tell
-if it
+*server*, internally, to make the lookup. So if a look up took 0.6 seconds and
+0.5 seconds internally, it means there was an 0.1 second overhead of making the
+request to Tecken. In that case, the 0.5 is basically purely the time it takes
+Tecken to talk to the storage server. One thing to note is that Tecken can
+iterate over a list of storage servers so this number covers lookups across all
+of them.
 
-Getting TaskCluster Artifact URLs
----------------------------------
+Testing symbolication: bin/symbolicate.py
+-----------------------------------------
 
-Builds are made on TaskCluster, as an artifact it builds symbols zip
-files. To get a list of recent ones of these for local development or
-load testing run the script:
-
-::
-
-   python list-firefox-symbols-zips.py
-
-Each URL can be used to test symbol upload by URL.
-
-To Use (for Symbolication)
---------------------------
-
-1. Download or clone this repo.
-
-2. Run a Python that has
-   `requests <http://requests.readthedocs.io/en/master/>`__
-   installed.
-
-3. Type something like::
+1. Run::
    
-       python symbolicate.py stacks http://localhost:8000
+       $ make shell
+       app@...:/app$ python symbolicate.py stacks HOST
 
-   assuming you have the symbolication server running at ``localhost:8000``
+   to run it against HOST.
 
-4. Sit and watch it or kill it with ``Ctrl-C``. If you kill it before it
-   finishes (finishing is likely to take hours) stats are printed out
-   with what's been accomplished so far.
+2. Sit and watch it or kill it with ``Ctrl-C``. If you kill it before it
+   finishes stats are printed out with what's been accomplished so far.
 
-How To Interpret The Results (for Symbolication)
-------------------------------------------------
 
-When you finish (or kill it unfinished) it will print out something that
-looks like this:
+The results look like this:
 
 ::
 
@@ -185,12 +176,11 @@ Here's the same output but annotated with comments:
    # data pipelining works.
    Final Cache Speed       219.0MB/s
 
-Word Of Warning
----------------
+.. Note::
 
-This script picks sample JSON stacks to send in randomly. Every time.
-That means that if you start it, kill it and start again, it's unlikely
-that you'll be able to benefit much from the cache of the first run.
+   This script picks sample JSON stacks to send in randomly. Every time.
+   That means that if you start it, kill it and start again, it's unlikely
+   that you'll be able to benefit much from the cache of the first run.
 
 How the ``symbol-queries-groups.csv`` file was made
 ---------------------------------------------------
@@ -205,21 +195,22 @@ respectively.
 The file ``symbol-queries-groups.csv`` was created by running
 ``generate-csv-logs.py`` a bunch of ways:
 
-#. ``AWS_ACCESS_KEY=... AWS_SECRET_ACCESS_KEY=... python generate-csv-logs.py download``
+1. ``AWS_ACCESS_KEY=... AWS_SECRET_ACCESS_KEY=... python generate-csv-logs.py download``
 
-#. ``python generate-csv-logs.py summorize``
+2. ``python generate-csv-logs.py summorize``
 
-#. ``python generate-csv-logs.py group``
+3. ``python generate-csv-logs.py group``
 
-Molotov Testing
----------------
+Testing with Molotov
+--------------------
 
-To start a `molotov testing <https://molotov.readthedocs.io/>`__ there's
+To start a `molotov testing <https://molotov.readthedocs.io/>`_ run, there's
 a ``loadtest.py`` script. Basic usage:
 
 ::
 
-   molotov --max-runs 10 -cx loadtest.py
+   $ make shell
+   app@...:/app$ molotov --max-runs 10 -cx loadtest.py
 
 By default the base URL for this will be ``http://localhost:8000``. If
 you want to override that, change the environment variable
@@ -227,7 +218,7 @@ you want to override that, change the environment variable
 
 ::
 
-   URL_SERVER=https://symbols.dev.mozaws.net molotov --max-runs 10 -cx loadtest.py
+   app@...:/app$ URL_SERVER=https://symbols.dev.mozaws.net molotov --max-runs 10 -cx loadtest.py
 
 Make Symbol Zips
 ----------------
@@ -242,9 +233,8 @@ from S3 and make a ``.zip`` file in your temp directory (e.g.
 
 Simply run it like this::
 
-::
-
-   python make-symbol-zip.py
+   $ make shell
+   app@...:/app$ python bin/make-symbol-zip.py
 
 In the stdout, it should say where it was saved.
 
@@ -254,8 +244,8 @@ Now you can use that to upload. For example:
 
    curl -X POST -H "Auth-Token: YYYYYYY" --form myfile.zip=@/tmp/massive-symbol-zips/symbols-2017-06-09T04_01_45.zip http://localhost:8000/upload/
 
-Test Symbol Upload
-------------------
+Testing symbol upload: bin/upload-symbol-zips.py
+------------------------------------------------
 
 First you have to make a bunch of ``.zip`` files. See the section above
 on "Make Symbol Zips". That script uses the same default save directory
@@ -263,11 +253,10 @@ as ``upload-symbol-zips.py``. This script picks random ``.zip`` files
 from that directory where they're temporarily saved. This script will
 actually go ahead and make the upload.
 
-First try:
+Run::
 
-::
-
-   python upload-symbol-zips.py --help
+    $ make shell
+    app@...:/app$ python bin/upload-symbol-zips.py
 
 By default, it will upload 1 random ``.zip`` file to
 ``http://localhost:8000/upload``. All the uploads are synchronous.
@@ -277,7 +266,8 @@ environment called ``AUTH_TOKEN``. Either export it or use like this:
 
 ::
 
-   AUTH_TOKEN=7e353c4f34644ef6ba1cfb02b3c3662d python upload-symbol-zips.py
+    $ make shell
+    app@...:/app$ AUTH_TOKEN=7e353c4f34644ef6ba1cfb02b3c3662d python bin/upload-symbol-zips.py
 
 If you do the testing using ``localhost:8000`` but actually depend on
 uploading the to an S3 bucket that is on the Internet, the uploads can
@@ -287,7 +277,8 @@ E.g.
 
 ::
 
-   python upload-symbol-zips.py --max-size 100m
+    $ make shell
+    app@...:/app$ python bin/upload-symbol-zips.py --max-size 100m
 
 That will pick (randomly) only from ``.zip`` files that are 100Mb or
 less.
@@ -301,7 +292,8 @@ Get an API token from
 
 ::
 
-   AUTH_TOKEN=bdf6effac894491a8ebd0d1b15f3ab5a python generate-symbols-uploaded.py
+    $ make shell
+    app@...:/app$ AUTH_TOKEN=bdf6effac894491a8ebd0d1b15f3ab5a python bin/generate-symbols-uploaded.py
 
 Analyzing Symbol Uploads
 ------------------------
@@ -313,7 +305,8 @@ Uploads" permission. Then run:
 
 ::
 
-   AUTH_TOKEN=66...92e python analyze-symbol-uploads-times.py --domain=symbols.stage.mozaws.net --limit=10
+    $ make shell
+    app@...:/app$ AUTH_TOKEN=66...92e python bin/analyze-symbol-uploads-times.py --domain=symbols.stage.mozaws.net --limit=10
 
 Uploading by Download URL from TaskCluster
 ------------------------------------------
@@ -325,5 +318,6 @@ you do it for stage:
 
 ::
 
-   export AUTH_TOKEN=xxxxxxxStageAPITokenxxxxxxxxx
-   python list-firefox-symbols-zips.py 1 | python upload-symbol-zips.py https://symbols.stage.mozaws.net --download-urls-from-stdin --max-size=2gb
+   $ make shell
+   app@...:/app$ export AUTH_TOKEN=xxxxxxxStageAPITokenxxxxxxxxx
+   app@...:/app$ python bin/list-firefox-symbols-zips.py 1 | python bin/upload-symbol-zips.py https://symbols.stage.mozaws.net --download-urls-from-stdin --max-size=2gb
