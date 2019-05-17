@@ -8,6 +8,7 @@ Downloads urls from a file in the form of::
     URI,STATUS CODE,PRIVATE,COUNT
 
 and reports responses and timings.
+
 """
 
 from collections import defaultdict
@@ -18,6 +19,7 @@ import statistics
 import time
 from urllib.parse import urljoin
 
+import click
 import requests
 from requests.exceptions import ConnectionError
 
@@ -86,12 +88,27 @@ def _stats(numbers):
         )
 
 
-def run(
-    base_url,
-    csv_file,
-    socorro_missing_csv_file=None,
-    only_microsoft_like_symbols=False,
-):
+@click.command()
+@click.option(
+    '--microsoft-like-only', default=False,
+    help='whether or not to do Microsoft-like symbols only'
+)
+@click.option(
+    '--max-requests', type=int, required=False,
+    help='maximum number of download requests to do; defaults to "all"'
+)
+@click.argument(
+    'base_url', nargs=1,
+    # help='base URL to download from'
+)
+@click.argument(
+    'csv_file', nargs=1, type=click.Path(),
+    # help='csv file with symbols to download'
+)
+@click.argument(
+    'missing_csv_file', nargs=1, type=click.Path(), required=False
+)
+def run(microsoft_like_only, max_requests, base_url, csv_file, missing_csv_file):
     uris_count = wc_file(csv_file)
     print(format(uris_count, ','), 'LINES')
     print('\n')
@@ -102,8 +119,8 @@ def run(
     ignore_hits = 0
 
     code_files_and_ids = {}
-    if socorro_missing_csv_file:
-        with open(socorro_missing_csv_file) as f:
+    if missing_csv_file:
+        with open(missing_csv_file) as f:
             reader = csv.reader(f)
             header = next(reader)
             _expect = ['debug_file', 'debug_id', 'code_file', 'code_id']
@@ -242,7 +259,7 @@ def run(
 
     flattened_jobs = []
     for uri, status, private, count in jobs:
-        if only_microsoft_like_symbols:
+        if microsoft_like_only:
             if not uri.endswith('.sym'):
                 continue
             try:
@@ -252,9 +269,7 @@ def run(
                 continue
 
         for i in range(int(count)):
-            flattened_jobs.append((
-                uri, status, private, 1
-            ))
+            flattened_jobs.append((uri, status, private, 1))
 
     random.shuffle(flattened_jobs)
 
@@ -266,6 +281,9 @@ def run(
 
     try:
         for i, job in enumerate(flattened_jobs):
+            if max_requests is not None and i > max_requests:
+                break
+
             s3_uri = job[0]
             status_code = job[1]
 
@@ -359,10 +377,4 @@ def run(
 
 
 if __name__ == '__main__':
-    import sys
-    args = sys.argv[1:]
-    kwargs = {}
-    if '--microsoft-like-only' in args:
-        kwargs['only_microsoft_like_symbols'] = True
-        args.remove('--microsoft-like-only')
-    sys.exit(run(*args, **kwargs))
+    run()

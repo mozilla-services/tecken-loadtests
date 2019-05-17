@@ -6,6 +6,8 @@ services:
       context: .
       dockerfile: Dockerfile
     image: tecken-loadtest:latest
+    env_file:
+      - my.env
     volumes:
       - $PWD:/app
     command: /bin/bash

@@ -4,3 +4,4 @@ downloadlogs/
 .vscode
 my.env
 .docker-build
+upload-zips/

@@ -2,15 +2,13 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import print_function  # in case you use py2
-
-import datetime
-import os
-import time
-import json
 import copy
+import datetime
+import json
+import os
 import random
 import tempfile
+import time
 from urllib.parse import urlparse
 
 import click
@@ -82,11 +80,11 @@ def printify(objects, p=30, n=10, prefix=''):
 def _stats(r):
     # returns the median, average and standard deviation of a sequence
     tot = sum(r)
-    avg = tot/len(r)
-    sdsq = sum([(i-avg)**2 for i in r])
+    avg = tot / len(r)
+    sdsq = sum([(i - avg) ** 2 for i in r])
     s = list(r)
     s.sort()
-    return s[len(s)//2], avg, (sdsq/(len(r)-1 or 1))**.5
+    return s[len(s) // 2], avg, (sdsq / (len(r) - 1 or 1)) ** .5
 
 
 def post_patiently(url, **kwargs):
@@ -102,20 +100,18 @@ def post_patiently(url, **kwargs):
         parsed = urlparse(url)
         if parsed.scheme == 'https' and parsed.netloc == 'prod.tecken.dev':
             options['verify'] = False
-        req = requests.post(url, json=payload, **options)
-        if req.status_code == 502 and 'localhost:8000' in url:
-            # When running against, http://localhost:8000 and the Django
-            # server restarts, you get a 502 error. Just try again
-            # a little later.
-            print("OH NO!! 502 Error")
-            raise ConnectionError('a hack')
-        if req.status_code != 200:
-            print('URL:', url)
+        resp = requests.post(url, json=payload, **options)
+        if resp.status_code == 502 and 'localhost:8000' in url:
+            print('')
+            print('Got HTTP 502 which is probably a Django server restart; retrying')
+            raise ConnectionError()
+        if resp.status_code != 200:
+            print('Got HTTP {}'.format(resp.status_code))
             print('PAYLOAD:', json.dumps(payload))
-        assert req.status_code == 200, req.status_code
-        r = req.json()
+            raise ConnectionError()
+        data = resp.json()
         t1 = time.time()
-        return (t1, t0), r
+        return (t1, t0), data
     except ConnectionError:
         if attempts > 3:
             raise
@@ -134,18 +130,20 @@ def post_patiently(url, **kwargs):
     '--batch-size', '-b',
     default=1,
     type=int,
-    help='Number of jobs to bundle per symbolication (only if /symbolicate/v5)'
+    help='Number of jobs to bundle per symbolication'
 )
 @click.argument('input_dir')
 @click.argument('url')
 def run(input_dir, url, limit=None, batch_size=1):
     url_parsed = urlparse(url)
     if not url_parsed.path or url_parsed.path == '/':
-        # Assume version 5
         if not url_parsed.path:
             url += '/'
         url += 'symbolicate/v5'
-    assert urlparse(url).path.endswith('/v5'), url
+
+    if not urlparse(url).path.endswith('/v5'):
+        raise click.BadParameter('symbolication.py only supports v5')
+
     files_count = wc_dir(input_dir)
     print(format(files_count, ','), 'FILES')
     print()
@@ -245,8 +243,8 @@ def run(input_dir, url, limit=None, batch_size=1):
     print()
     try:
         bundle = []
-        for i, fp in enumerate(files):
-            with open(fp) as f, open(logfile_path, 'a') as logfile:
+        for i, filename in enumerate(files):
+            with open(filename) as f, open(logfile_path, 'a') as logfile:
                 payload = json.loads(f.read())
                 payload.pop('version', None)
                 bundle.append(payload)
@@ -256,6 +254,7 @@ def run(input_dir, url, limit=None, batch_size=1):
                     payload = {'jobs': list(bundle)}
                     bundle = []
 
+                print('FILE: %s' % filename, file=logfile)
                 print("PAYLOAD (as JSON)", file=logfile)
                 print('-' * 79, file=logfile)
                 print(json.dumps(payload), file=logfile)
@@ -368,10 +367,9 @@ def run(input_dir, url, limit=None, batch_size=1):
                 break
     except KeyboardInterrupt:
         print_total_debugs(False)
-        return 1
+        return
 
     print_total_debugs(True)
-    return 0
 
 
 if __name__ == '__main__':

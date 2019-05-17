@@ -4,10 +4,16 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import print_function
+"""
+List recently generated symbols ZIP files in taskcluster. You can
+use these to do "upload by download url".
+"""
 
-import itertools
+import re
+
+import click
 import requests
+
 
 INDEX = 'https://index.taskcluster.net/v1/'
 QUEUE = 'https://queue.taskcluster.net/v1/'
@@ -26,6 +32,29 @@ def index_namespaces(namespace, limit=1000):
                       json={'limit': limit})
     for n in r.json()['namespaces']:
         yield n['namespace']
+
+
+def parse_file_size(s):
+    parsed = re.findall(r'([\d\.]+)([gmbk]+)', s)
+    if not parsed:
+        number = s
+        unit = 'b'
+    else:
+        number, unit = parsed[0]
+    number = float(number)
+    unit = unit.lower()
+
+    if unit == 'b':
+        pass
+    elif unit in ('k', 'kb'):
+        number *= 1024
+    elif unit in ('m', 'mb'):
+        number *= 1024 * 1024
+    elif unit in ('g', 'gb'):
+        number *= 1024 * 1024 * 1024
+    else:
+        raise NotImplementedError(unit)
+    return int(number)
 
 
 def index_tasks(namespace, limit=1000):
@@ -77,16 +106,39 @@ def get_content_length(url):
     return int(response.headers['content-length'])
 
 
-if __name__ == '__main__':
-    import sys
-    try:
-        n = int(sys.argv[1])
-    except IndexError:
-        n = 10
-    assert n > 0 and n < 100, n
-    for url in itertools.islice(get_symbols_urls(), n):
+@click.command()
+@click.option(
+    '--number', default=5, type=int,
+    help='number of urls to print out; don\'t do more than 100'
+)
+@click.option(
+    '--max-size', default='1000mb',
+    help='max size for urls to print out'
+)
+@click.option(
+    '--url-only/--no-url-only', default=False,
+    help='print just the url'
+)
+def run(number, max_size, url_only):
+    max_size_bytes = parse_file_size(max_size)
+
+    if number > 100:
+        raise click.BadParameter('number should not be greater than 100')
+
+    for url in get_symbols_urls():
+        if number <= 0:
+            break
+
         size = get_content_length(url)
-        print(
-            sizeof_fmt(size).ljust(10),
-            url,
-        )
+        if size > max_size_bytes:
+            continue
+
+        if url_only:
+            print(url)
+        else:
+            print(sizeof_fmt(size).ljust(10), url)
+        number -= 1
+
+
+if __name__ == '__main__':
+    run()

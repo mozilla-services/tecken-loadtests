@@ -15,9 +15,9 @@ COPY requirements.txt /app/requirements.txt
 RUN pip install -U 'pip>=8' && \
     pip3 install --no-cache-dir -r /app/requirements.txt
 
-ENV PYTHONUNBUFFERED 1 \
-    PYTHONDONTWRITEBYTECODE 1 \
-    PYTHONPATH /app
+ENV PYTHONUNBUFFERED 1
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONPATH /app
 
 USER app
 
