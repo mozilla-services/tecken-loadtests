@@ -2,15 +2,11 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-"""The purpose of this script is to upload random .zip files.
-By default you send them to http://localhost:8000/upload
-By default it only uploads 1.
-"""
+"""Uploads random .zip files."""
 
 import re
 import os
 import random
-import tempfile
 import time
 import glob
 import sys
@@ -22,8 +18,11 @@ import requests
 from requests.exceptions import ReadTimeout, ConnectionError
 
 
+ZIPS_DIR = 'upload-zips'
+
+
 class BadGatewayError(Exception):
-    """happens when you get a 502 error from the server"""
+    """502 error from the server."""
 
 
 def sizeof_fmt(num, suffix='B'):
@@ -34,11 +33,8 @@ def sizeof_fmt(num, suffix='B'):
     return '%.1f%s%s' % (num, 'Yi', suffix)
 
 
-_default_zips_dir = os.path.join(tempfile.gettempdir(), 'massive-symbol-zips')
-
-
 def parse_file_size(s):
-    parsed = re.findall('([\d\.]+)([gmbk]+)', s)
+    parsed = re.findall(r'([\d\.]+)([gmbk]+)', s)
     if not parsed:
         number = s
         unit = 'b'
@@ -233,9 +229,7 @@ def upload_by_download_url(
 @click.command()
 @click.option(
     '--zips-dir',
-    help='Where all .zip files were saved (default {})'.format(
-        _default_zips_dir,
-    )
+    help='Where all .zip files were saved (default {})'.format(ZIPS_DIR)
 )
 @click.option('--max-size', default='1000mb', help=(
     'Max size of files to attempt to upload.'
@@ -341,7 +335,7 @@ def run(
     if download_urls:
         return
 
-    zips_dir = zips_dir or _default_zips_dir
+    zips_dir = zips_dir or ZIPS_DIR
     if not os.path.isdir(zips_dir):
         raise click.ClickException(
             'Directory {} does not exist'.format(zips_dir)

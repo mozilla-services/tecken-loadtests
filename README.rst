@@ -224,12 +224,11 @@ Make Symbol Zips
 ----------------
 
 To load test Tecken with realistic ``.zip`` uploads, you can simulate
-the uploads sent to Socorro in the past.
+the uploads sent to Tecken in the past.
 
 The ``make-symbol-zip.py`` script will look at the logs, pick a recent
 one (uploaded by Mozilla RelEng) and then download each and every file
-from S3 and make a ``.zip`` file in your temp directory (e.g.
-``/tmp/massive-symbol-zips/symbols-2017-06-09T04_01_45.zip``).
+from S3 and make a ``.zip`` file in ``upload-zips`` directory.
 
 Simply run it like this::
 

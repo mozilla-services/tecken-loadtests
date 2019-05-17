@@ -2,9 +2,10 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-"""The purpose of this file is to generate large symbol.zip files
-based on looking at logs in
-https://crash-stats.mozilla.com/api/UploadedSymbols/
+"""
+Generates large symbol.zip files for upload testing based on looking at logs
+in https://crash-stats.mozilla.com/api/UploadedSymbols/ .
+
 However, since all files in there are public, a bunch of these queries
 have already been made and saved into ./symbols-uploaded/.
 """
@@ -23,8 +24,13 @@ import concurrent.futures
 from urllib.parse import urlparse
 
 import click
-import requests
 import deco
+import requests
+
+
+SYMBOLS_DIR = 'https://s3-us-west-2.amazonaws.com/org.mozilla.crash-stats.symbols-public/'
+
+ZIPS_DIR = 'upload-zips'
 
 
 compression = zipfile.ZIP_DEFLATED
@@ -43,7 +49,7 @@ def seconds_fmt(t):
 
 
 def parse_file_size(s):
-    parsed = re.findall('([\d\.]+)([gmbk]+)', s)
+    parsed = re.findall(r'([\d\.]+)([gmbk]+)', s)
     if not parsed:
         number = s
         unit = 'b'
@@ -75,18 +81,12 @@ def download(uri, save_dir, store):
 
 
 def _download(uri, save_dir):
-    url = (
-        'https://s3-us-west-2.amazonaws.com/'
-        'org.mozilla.crash-stats.symbols-public/'
-    ) + uri.split(',', 1)[1]
+    url = SYMBOLS_DIR + uri.split(',', 1)[1]
     t0 = time.time()
     response = requests.get(url)
     if response.status_code != 200:
         raise Exception(
-            'Got {} trying to download {}'.format(
-                response.status_code,
-                url
-            )
+            'Got {} trying to download {}'.format(response.status_code, url)
         )
     path = uri.split(',', 1)[1].replace('v1/', '')
     dirname = os.path.join(save_dir, os.path.dirname(path))
@@ -109,10 +109,7 @@ def _download(uri, save_dir):
 
 def _get_index(save_dir, days=0, max_size=None, silent=False):
     # Pick a random file from the ./symbols-uploaded/ directory
-    symbols_uploaded_dir = os.path.join(
-        os.path.dirname(__file__),
-        'symbols-uploaded'
-    )
+    symbols_uploaded_dir = 'symbols-uploaded'
     symbols_uploaded_file = random.choice(
         glob.glob(os.path.join(symbols_uploaded_dir, '*.json.gz'))
     )
@@ -198,15 +195,10 @@ def _make_filepath(save_dir, bundle):
     )
 
 
-_default_save_dir = os.path.join(tempfile.gettempdir(), 'massive-symbol-zips')
-
-
 @click.command()
 @click.option(
     '--save-dir',
-    help='Where all .zip files get saved (default {})'.format(
-        _default_save_dir,
-    )
+    help='Where all .zip files get saved (default {})'.format(ZIPS_DIR)
 )
 @click.option(
     '--max-size',
@@ -231,7 +223,7 @@ def run(save_dir=None, max_size=None, silent=False, use_threads=False):
             'Max. size filter:',
             sizeof_fmt(max_size),
         )
-    save_dir = save_dir or _default_save_dir
+    save_dir = save_dir or ZIPS_DIR
     if not os.path.isdir(save_dir):
         os.makedirs(save_dir, exist_ok=True)
     bundle = _get_index(save_dir, max_size=max_size, silent=silent)
@@ -258,8 +250,8 @@ def run(save_dir=None, max_size=None, silent=False, use_threads=False):
         total_size = 0
         sizes = []
         times = []
-        with zipfile.ZipFile(save_filepath, mode='w') as zf:
 
+        with zipfile.ZipFile(save_filepath, mode='w') as zf:
             for uri, download_result in downloaded.items():
                 if not download_result:
                     print('Nothing downloaded for {}'.format(uri))
