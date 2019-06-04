@@ -36,13 +36,13 @@ echo ""
 # mkdir upload-zips
 # python bin/make-symbol-zip.py --save-dir upload-zips
 echo ">>> UPLOAD TEST"
-python bin/upload-symbol-zips.py ${HOST}
+python bin/upload-symbol-zips.py --timeout=600 ${HOST}
 echo ""
 
 # Test upload by download url
 echo ">>> UPLOAD BY DOWNLOAD TEST"
 URL=$(python bin/list-firefox-symbols-zips.py --url-only --number=1)
-python bin/upload-symbol-zips.py --download-url=${URL} --number=1 --max-size=1500mb ${HOST}
+python bin/upload-symbol-zips.py --timeout=600 --download-url=${URL} --number=1 --max-size=1500mb ${HOST}
 echo ""
 
 # Test downloading

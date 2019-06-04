@@ -170,7 +170,7 @@ def upload_by_download_url(
                 raise ReadTimeout(response.status_code)
             t1 = time.time()
             break
-        except (ReadTimeout, BadGatewayError) as exception:
+        except (ConnectionError, ReadTimeout, BadGatewayError) as exc:
             t1 = time.time()
             retries += 1
             click.echo(click.style(
@@ -182,9 +182,7 @@ def upload_by_download_url(
                 raise
             click.echo(click.style(
                 'Retrying (after {:.1f}s) due to {}: {}'.format(
-                    t1 - t0,
-                    exception.__class__.__name__,
-                    exception,
+                    t1 - t0, exc.__class__.__name__, exc
                 ),
                 fg='yellow'
             ))
