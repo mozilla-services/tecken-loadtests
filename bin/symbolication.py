@@ -106,8 +106,9 @@ def post_patiently(url, **kwargs):
             print('Got HTTP 502 which is probably a Django server restart; retrying')
             raise ConnectionError()
         if resp.status_code != 200:
-            print('Got HTTP {}'.format(resp.status_code))
             print('PAYLOAD:', json.dumps(payload))
+            print('Got HTTP {}'.format(resp.status_code))
+            print('CONTENT: {}'.format(resp.content))
             raise ConnectionError()
         data = resp.json()
         t1 = time.time()
@@ -287,9 +288,14 @@ def run(input_dir, url, limit=None, batch_size=1):
                 #             print("FRAMES", frame)
                 #             raise Exception
                 #     raise Exception
-                    # for j, combo in enumerate(job['memoryMap']):
+                #     for j, combo in enumerate(job['memoryMap']):
 
-                        # print(combo, '-->', r['results'][i]['knownModules'][j], file=logfile)
+                #         print(
+                #             combo,
+                #             '-->',
+                #             r['results'][i]['knownModules'][j],
+                #             file=logfile
+                #         )
                 #     for combo in job['memoryMap']:
                 #         memory_map.add(tuple(combo))
                 # memory_map = list(memory_map)
