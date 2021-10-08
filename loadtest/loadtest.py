@@ -30,7 +30,7 @@ def test_starts(args):
 
     Notice that it's not a coroutine.
     """
-    stacks_dir = "stacks"
+    stacks_dir = "../stacks"
     socorro_missing_csv = "downloading/socorro-missing.csv"
     symbol_queries_csv = "downloading/symbol-queries-groups.csv"
     # Populate the STACKS list with a list of paths to all stacks files
