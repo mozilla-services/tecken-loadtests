@@ -1,11 +1,12 @@
-version: '2'
+---
+version: '2.4'
 
 services:
   base:
     build:
       context: .
       dockerfile: Dockerfile
-    image: tecken-loadtest:latest
+    image: tecken-loadtests:latest
     env_file:
       - my.env
     volumes:

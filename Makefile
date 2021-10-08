@@ -14,21 +14,19 @@ MYUID ?= 10001
 MYGID ?= 10001
 
 DC := $(shell which docker-compose)
+STACKSDIR = stacks/
 
+.DEFAULT_GOAL := help
 .PHONY: help
-help: default
-
-.PHONY: help
-default:
-	@echo "Welcome to the tecken-loadtest\n"
-	@echo "The list of commands:\n"
-	@echo "  symbolicate-locally    Do a lot of symbolications locally"
-	@echo "  symbolicate-dev        Do a lot of symbolications on Dev server"
-	@echo "  symbolicate-stage      Do a lot of symbolications on Stage server"
-	@echo "  download-locally       Do a lot of symbol downloads locally"
-	@echo "  download-dev           Do a lot of symbol downloads on Dev server"
-	@echo "  download-stage         Do a lot of symbol downloads on Stage server"
-	@echo "  make-symbol-zip        Generate .zip files to test upload\n"
+help:
+	@echo "Usage: make RULE"
+	@echo ""
+	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' Makefile \
+		| grep -v grep \
+	    | sed -n 's/^\(.*\): \(.*\)##\(.*\)/\1\3/p' \
+	    | column -t  -s '|'
+	@echo ""
+	@echo "Read README.rst for more details."
 
 my.env:
 	@if [ ! -f my.env ]; \
@@ -41,48 +39,46 @@ my.env:
 	make build
 
 .PHONY: build
-build:
+build:  ## | Build Docker image for testing with
 	${DC} build --no-cache --build-arg userid=${MYUID} --build-arg groupid=${MYGID} base
 	touch .docker-build
 
 .PHONY: clean
-clean:
+clean:  ## | Delete artifacts
 	${DC} stop
 	${DC} rm -f
 	rm -rf .docker-build
 
 .PHONY: shell
-shell:
+shell: .docker-build  ## | Create a shell in the Docker image
 	${DC} run base /bin/bash
 
-.PHONY: symbolicate-locally
-symbolicate-locally:
-	python symbolication.py stacks http://localhost:8000
+.PHONY: buildstacks
+buildstacks: .docker-build  ## | Build stacks for testing symbolication
+	-mkdir $(STACKSDIR)
+	${DC} run base /bin/bash -c "bin/fetch-crashids.py --num-results=100 | bin/make-stacks.py save $(STACKSDIR)"
+	@echo "`ls $(STACKSDIR)/*.json | wc -l` stacks total."
 
-.PHONY: symbolicate-dev
-symbolicate-dev:
-	python symbolication.py stacks https://symbols.dev.mozaws.net
+.PHONY: symbolicate-locally
+symbolicate-locally:  ## | Run symbolication against localhost
+	python symbolication.py stacks http://localhost:8050
 
 .PHONY: symbolicate-stage
-symbolicate-stage:
+symbolicate-stage:  ## | Run symbolication against stage
 	python symbolication.py stacks https://symbols.stage.mozaws.net
 
 .PHONY: download-locally
-download-locally:
+download-locally:  ## | Run download test against localhost
 	python download.py http://localhost:8000 downloading/symbol-queries-groups.csv downloading/socorro-missing.csv
 
-.PHONY: download-dev
-download-dev:
-	python download.py https://symbols.dev.mozaws.net downloading/symbol-queries-groups.csv downloading/socorro-missing.csv
-
 .PHONY: download-stage
-download-stage:
+download-stage:  ## | Run download test against stage
 	python download.py https://symbols.stage.mozaws.net downloading/symbol-queries-groups.csv downloading/socorro-missing.csv
 
 .PHONY: download-prod
-download-prod:
+download-prod:  ## | Run download test against prod
 	python download.py https://symbols.mozilla.org downloading/symbol-queries-groups.csv downloading/socorro-missing.csv
 
 .PHONY: make-symbol-zip
-make-symbol-zip:
+make-symbol-zip:  ## | Make a symbols.zip file for uploading tests
 	python make-symbol-zip.py

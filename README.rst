@@ -1,33 +1,42 @@
+================
 Tecken loadtests
 ================
 
-Ability to bombard `Mozilla Symbol Server <https://github.com/mozilla-services/tecken>`__'s
-Symbolication service with tons of stacks as stored in ``.json`` files and the
-Download service with tons of symbol URL requests.
+Set of tools for load testing Tecken Symbols Service and Symbolication Service.
+
 
 Setup
------
+=====
 
 1. Clone the repo.
-
 2. Run ``make build`` to build the Docker container.
 
-Getting TaskCluster Artifact URLs
----------------------------------
 
-Builds are made on TaskCluster, as an artifact it builds symbols zip
-files. To get a list of recent ones of these for local development or
-load testing run the script:
+Testing download API
+====================
 
-::
+Generating ``symbol-queries-groups.csv``
+----------------------------------------
 
-   $ make shell
-   app@...:/app$ python bin/list-firefox-symbols-zips.py
+First of all, you need to enable logging on the
+``org.mozilla.crash-stats.symbols-public`` and
+``org.mozilla.crash-stats.symbols-private`` S3 buckets. Make the logging
+go to the bucket ``peterbe-symbols-playground-deleteme-in-2018`` and for
+each make the prefix be ``public-symbols/`` and ``private-symbols/``
+respectively.
 
-Each URL can be used to test symbol upload by URL.
+The file ``symbol-queries-groups.csv`` was created by running
+``generate-csv-logs.py`` a bunch of ways:
 
-Testing downloads: bin/download.py
-----------------------------------
+1. ``AWS_ACCESS_KEY=... AWS_SECRET_ACCESS_KEY=... python generate-csv-logs.py download``
+
+2. ``python generate-csv-logs.py summorize``
+
+3. ``python generate-csv-logs.py group``
+
+
+Testing the download API
+------------------------
 
 1. Run::
 
@@ -79,13 +88,27 @@ Tecken to talk to the storage server. One thing to note is that Tecken can
 iterate over a list of storage servers so this number covers lookups across all
 of them.
 
-Testing symbolication: bin/symbolicate.py
------------------------------------------
+
+Testing symbolication API
+=========================
+
+Getting stack data
+------------------
+
+You'll need stack data to test symbolication.
+
+To build stacks::
+
+    $ make buildstacks
+
+
+Run symbolication testing
+-------------------------
 
 1. Run::
    
        $ make shell
-       app@...:/app$ python symbolicate.py stacks HOST
+       app@...:/app$ python bin/symbolicate.py stacks HOST
 
    to run it against HOST.
 
@@ -182,27 +205,9 @@ Here's the same output but annotated with comments:
    That means that if you start it, kill it and start again, it's unlikely
    that you'll be able to benefit much from the cache of the first run.
 
-How the ``symbol-queries-groups.csv`` file was made
----------------------------------------------------
 
-First of all, you need to enable logging on the
-``org.mozilla.crash-stats.symbols-public`` and
-``org.mozilla.crash-stats.symbols-private`` S3 buckets. Make the logging
-go to the bucket ``peterbe-symbols-playground-deleteme-in-2018`` and for
-each make the prefix be ``public-symbols/`` and ``private-symbols/``
-respectively.
-
-The file ``symbol-queries-groups.csv`` was created by running
-``generate-csv-logs.py`` a bunch of ways:
-
-1. ``AWS_ACCESS_KEY=... AWS_SECRET_ACCESS_KEY=... python generate-csv-logs.py download``
-
-2. ``python generate-csv-logs.py summorize``
-
-3. ``python generate-csv-logs.py group``
-
-Testing with Molotov
---------------------
+Load testing with Molotov
+-------------------------
 
 To start a `molotov testing <https://molotov.readthedocs.io/>`_ run, there's
 a ``loadtest.py`` script. Basic usage:
@@ -219,6 +224,10 @@ you want to override that, change the environment variable
 ::
 
    app@...:/app$ URL_SERVER=https://symbols.dev.mozaws.net molotov --max-runs 10 -cx loadtest.py
+
+
+Testing upload API
+==================
 
 Make Symbol Zips
 ----------------
@@ -241,16 +250,28 @@ Now you can use that to upload. For example:
 
 ::
 
-   curl -X POST -H "Auth-Token: YYYYYYY" --form myfile.zip=@/tmp/massive-symbol-zips/symbols-2017-06-09T04_01_45.zip http://localhost:8000/upload/
+   curl -X POST -H "Auth-Token: YYYYYYY" \
+       --form myfile.zip=@/tmp/massive-symbol-zips/symbols-2017-06-09T04_01_45.zip \
+       http://localhost:8000/upload/
 
-Testing symbol upload: bin/upload-symbol-zips.py
-------------------------------------------------
 
-First you have to make a bunch of ``.zip`` files. See the section above
-on "Make Symbol Zips". That script uses the same default save directory
-as ``upload-symbol-zips.py``. This script picks random ``.zip`` files
-from that directory where they're temporarily saved. This script will
-actually go ahead and make the upload.
+Upload symbol zips
+------------------
+
+Builds are made on TaskCluster, as an artifact it builds symbols zip files. To
+get a list of recent ones of these for local development or load testing run
+the script:
+
+::
+
+   $ make shell
+   app@...:/app$ python bin/list-firefox-symbols-zips.py
+
+Each URL can be used to test symbol upload by URL. Uses the same default
+save directory as ``upload-symbol-zips.py``.
+
+This script picks random ``.zip`` files from that directory where they're
+temporarily saved. This script will actually go ahead and make the upload.
 
 Run::
 
@@ -282,6 +303,7 @@ E.g.
 That will pick (randomly) only from ``.zip`` files that are 100Mb or
 less.
 
+
 Generating ``symbols-uploaded/YYYY-MM-DD.json.gz``
 --------------------------------------------------
 
@@ -293,6 +315,7 @@ Get an API token from
 
     $ make shell
     app@...:/app$ AUTH_TOKEN=bdf6effac894491a8ebd0d1b15f3ab5a python bin/generate-symbols-uploaded.py
+
 
 Analyzing Symbol Uploads
 ------------------------
@@ -306,6 +329,7 @@ Uploads" permission. Then run:
 
     $ make shell
     app@...:/app$ AUTH_TOKEN=66...92e python bin/analyze-symbol-uploads-times.py --domain=symbols.stage.mozaws.net --limit=10
+
 
 Uploading by Download URL from TaskCluster
 ------------------------------------------

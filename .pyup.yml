@@ -1,5 +1,0 @@
-search: False
-label_prs: update
-requirements:
-  - requirements.txt
-    pin: False

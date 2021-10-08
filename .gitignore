@@ -5,3 +5,4 @@ downloadlogs/
 my.env
 .docker-build
 upload-zips/
+stacks/
