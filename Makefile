@@ -56,7 +56,7 @@ shell: .docker-build  ## | Create a shell in the Docker image
 .PHONY: buildstacks
 buildstacks: .docker-build  ## | Build stacks for testing symbolication
 	-mkdir $(STACKSDIR)
-	${DC} run base /bin/bash -c "bin/fetch-crashids.py --num-results=100 | bin/make-stacks.py save $(STACKSDIR)"
+	${DC} run base /bin/bash -c "bin/fetch-crashids.py --num-results=1000 | bin/make-stacks.py save $(STACKSDIR)"
 	@echo "`ls $(STACKSDIR)/*.json | wc -l` stacks total."
 
 .PHONY: symbolicate-locally

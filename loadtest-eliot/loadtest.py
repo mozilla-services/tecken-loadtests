@@ -3,15 +3,15 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import json
+import os
 import pathlib
 import random
 
 import jsonschema
-from molotov import global_setup, setup, scenario
+from molotov import global_setup, setup, scenario, get_var, set_var
 
 
-API_URL = "https://symbolication.stage.mozaws.net/symbolicate/v5"
-# API_URL = "https://symbolication.services.mozilla.com/symbolicate/v5"
+DEFAULT_API_URL = "https://symbolication.stage.mozaws.net/symbolicate/v5"
 SCHEMA = None
 PAYLOADS = []
 
@@ -35,18 +35,23 @@ def system_setup(args):
     """
     global SCHEMA
     # This is a copy of the one in the tecken repo
-    schema_path = pathlib.Path("../schemas/symbolicate_api_response_v5.json")
+    schema_path = pathlib.Path("schemas/symbolicate_api_response_v5.json")
     SCHEMA = load_schema(schema_path)
     print("Schema loaded.")
 
     # Stacks are in the parent directory
-    stacks_dir = pathlib.Path("../stacks/")
+    stacks_dir = pathlib.Path("stacks/")
     for path in stacks_dir.glob("*.json"):
         path = path.resolve()
         stack = load_stack(path)
         PAYLOADS.append((str(path), stack))
+
+    # Set the API url
+    api_url = os.environ.get("API_URL", DEFAULT_API_URL)
+    set_var("api_url", api_url)
+
     print(f"Stacks loaded: {len(PAYLOADS)}")
-    print(f"Running tests against: {API_URL}")
+    print(f"Running tests against: {api_url}")
 
 
 @setup()
@@ -67,9 +72,11 @@ async def worker_setup(worker_id, args):
 
 @scenario(weight=100)
 async def scenario_request_stack(session):
+    api_url = get_var("api_url")
+
     payload_id = int(random.uniform(0, len(PAYLOADS)))
     payload_path, payload = PAYLOADS[payload_id]
-    async with session.post(API_URL, json=payload) as resp:
+    async with session.post(api_url, json=payload) as resp:
         assert resp.status == 200, f"failed with {resp.status}: {payload_path}"
 
         json_data = await resp.json()
