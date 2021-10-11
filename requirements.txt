@@ -1,6 +1,7 @@
 click==8.0.1
 deco==0.6.3
 jsonschema==4.0.1
+locust==2.2.3
 molotov==2.3
 python-dateutil==2.8.2
 requests==2.26.0

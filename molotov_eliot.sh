@@ -1,5 +1,13 @@
 #!/bin/bash
 
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Usage: ./molotov_eliot.sh [stage|prod]
+#
+# Run it in the Docker container.
+
 DURATION=600
 STAGE_API_URL="https://symbolication.stage.mozaws.net/symbolicate/v5"
 PROD_API_URL="https://symbolication.services.mozilla.com/symbolication/v5"
