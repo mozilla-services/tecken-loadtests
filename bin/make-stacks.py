@@ -23,7 +23,7 @@ import click
 import requests
 
 
-PROCESSED_CRASH_API = "https://crash-stats.mozilla.org/api/ProcessedCrash"
+PROCESSED_CRASH_API = "https://crash-stats.mozilla.org/api/ProcessedCrash/"
 
 
 def fetch_crash_report(crashid):
@@ -34,7 +34,7 @@ def fetch_crash_report(crashid):
     :returns: processed crash as a dict
 
     """
-    headers = {"User-Agent": "tecken-systemtests"}
+    headers = {"User-Agent": "tecken-loadtests"}
     resp = requests.get(
         PROCESSED_CRASH_API, params={"crash_id": crashid}, headers=headers
     )
@@ -138,13 +138,13 @@ def make_stacks_save(ctx, outputdir, crashids):
             param_hint="outputdir",
         )
 
-    print("Creating stacks and saving them to '%s'..." % outputdir)
+    print(f"Creating stacks and saving them to {outputdir!r}...")
     for crashid in crashids:
         crashid = crashid.strip()
         if crashid.startswith("#"):
             continue
 
-        print("%s..." % crashid)
+        print(f"{crashid}...")
         crash_report = fetch_crash_report(crashid)
         try:
             data = build_stack(crash_report)
@@ -155,7 +155,8 @@ def make_stacks_save(ctx, outputdir, crashids):
         if not data or not data["stacks"][0]:
             print("Nothing to save.")
             continue
-        with open(os.path.join(outputdir, "%s.json" % crashid), "w") as fp:
+
+        with open(os.path.join(outputdir, f"{crashid}.json"), "w") as fp:
             json.dump(data, fp, indent=2)
 
     print("Done!")
