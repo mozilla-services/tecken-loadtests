@@ -12,85 +12,8 @@ Setup
 2. Run ``make build`` to build the Docker container.
 
 
-Testing download API
-====================
-
-Generating ``symbol-queries-groups.csv``
-----------------------------------------
-
-First of all, you need to enable logging on the
-``org.mozilla.crash-stats.symbols-public`` and
-``org.mozilla.crash-stats.symbols-private`` S3 buckets. Make the logging
-go to the bucket ``peterbe-symbols-playground-deleteme-in-2018`` and for
-each make the prefix be ``public-symbols/`` and ``private-symbols/``
-respectively.
-
-The file ``symbol-queries-groups.csv`` was created by running
-``generate-csv-logs.py`` a bunch of ways:
-
-1. ``AWS_ACCESS_KEY=... AWS_SECRET_ACCESS_KEY=... python generate-csv-logs.py download``
-
-2. ``python generate-csv-logs.py summorize``
-
-3. ``python generate-csv-logs.py group``
-
-
-Testing the download API
-------------------------
-
-1. Run::
-
-       $ make shell
-       app@...:/app$ python bin/download.py HOST downloading/symbol-queries-groups.csv
-
-   to run it against HOST.
-
-2. Sit and watch it or kill it with ``Ctrl-C``. If you kill it before it
-   finishes stats are printed out with what's been accomplished so far.
-
-**Alternatively** you can do the same but add another CSV file that
-contains looks for ``code_file`` and ``code_id``. For example:
-
-::
-
-   $ make shell
-   app@...:/app$ python download.py HOST downloading/symbol-queries-groups.csv downloading/socorro-missing.csv
-
-That second file is expected to have the following header:
-
-::
-
-   debug_file,debug_id,code_file,code_id
-
-
-The results look like this:
-
-::
-
-   JOBS DONE SO FAR     302
-   RAN FOR              173.957s
-   AVERAGE RATE         1.74 requests/s
-
-   STATUS CODE           COUNT        MEDIAN    (INTERNAL)       AVERAGE    (INTERNAL)       % RIGHT
-   404                     274        0.644s        0.651s        0.564s        0.660s         95.62
-   302                      28        0.657s        0.639s        0.693s        0.663s        100.00
-
-That means that 302 URLs were sent in. In 95.62% of the cases, Tecken also
-found that the symbol file didn't exist (compared with what was the case when
-the CSV file was made). And there were 28 requests where the symbol existed and
-was able to redirect to an absolute url for the symbol file.
-
-The ``(INTERNAL)`` is the median and average of the seconds it took the
-*server*, internally, to make the lookup. So if a look up took 0.6 seconds and
-0.5 seconds internally, it means there was an 0.1 second overhead of making the
-request to Tecken. In that case, the 0.5 is basically purely the time it takes
-Tecken to talk to the storage server. One thing to note is that Tecken can
-iterate over a list of storage servers so this number covers lookups across all
-of them.
-
-
-Testing symbolication API
-=========================
+Testing Eliot
+=============
 
 Getting stack data
 ------------------
@@ -102,7 +25,7 @@ To build stacks::
     $ make buildstacks
 
 
-Run symbolication testing
+Testing Symbolication API
 -------------------------
 
 1. Run::
@@ -206,6 +129,20 @@ Here's the same output but annotated with comments:
    that you'll be able to benefit much from the cache of the first run.
 
 
+Load testing with Locust
+------------------------
+
+To test with Locust, use the ``locust_eliot.sh`` script.
+
+For example::
+
+   $ make shell
+   app@...:/app$ locust_eliot.sh aws-stage
+
+In the script are various things you can adjust like number of users and
+duration.
+
+
 Load testing with Molotov
 -------------------------
 
@@ -226,8 +163,62 @@ you want to override that, change the environment variable
    app@...:/app$ URL_SERVER=https://symbols.dev.mozaws.net molotov --max-runs 10 -cx loadtest.py
 
 
-Testing upload API
-==================
+Testing Tecken
+==============
+
+Testing the download API
+------------------------
+
+1. Run::
+
+       $ make shell
+       app@...:/app$ python bin/download.py HOST downloading/symbol-queries-groups.csv
+
+   to run it against HOST.
+
+2. Sit and watch it or kill it with ``Ctrl-C``. If you kill it before it
+   finishes stats are printed out with what's been accomplished so far.
+
+**Alternatively** you can do the same but add another CSV file that
+contains looks for ``code_file`` and ``code_id``. For example:
+
+::
+
+   $ make shell
+   app@...:/app$ python download.py HOST downloading/symbol-queries-groups.csv downloading/socorro-missing.csv
+
+That second file is expected to have the following header:
+
+::
+
+   debug_file,debug_id,code_file,code_id
+
+
+The results look like this:
+
+::
+
+   JOBS DONE SO FAR     302
+   RAN FOR              173.957s
+   AVERAGE RATE         1.74 requests/s
+
+   STATUS CODE           COUNT        MEDIAN    (INTERNAL)       AVERAGE    (INTERNAL)       % RIGHT
+   404                     274        0.644s        0.651s        0.564s        0.660s         95.62
+   302                      28        0.657s        0.639s        0.693s        0.663s        100.00
+
+That means that 302 URLs were sent in. In 95.62% of the cases, Tecken also
+found that the symbol file didn't exist (compared with what was the case when
+the CSV file was made). And there were 28 requests where the symbol existed and
+was able to redirect to an absolute url for the symbol file.
+
+The ``(INTERNAL)`` is the median and average of the seconds it took the
+*server*, internally, to make the lookup. So if a look up took 0.6 seconds and
+0.5 seconds internally, it means there was an 0.1 second overhead of making the
+request to Tecken. In that case, the 0.5 is basically purely the time it takes
+Tecken to talk to the storage server. One thing to note is that Tecken can
+iterate over a list of storage servers so this number covers lookups across all
+of them.
+
 
 Make Symbol Zips
 ----------------
@@ -255,7 +246,7 @@ Now you can use that to upload. For example:
        http://localhost:8000/upload/
 
 
-Upload symbol zips
+Testing upload API
 ------------------
 
 Builds are made on TaskCluster, as an artifact it builds symbols zip files. To
