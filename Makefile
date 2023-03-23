@@ -13,7 +13,8 @@ export
 MYUID ?= 10001
 MYGID ?= 10001
 
-DC := $(shell which docker-compose)
+DOCKER := $(shell which docker)
+DC=${DOCKER} compose
 STACKSDIR = stacks/
 
 .DEFAULT_GOAL := help
