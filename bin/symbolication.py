@@ -117,11 +117,7 @@ def post_patiently(url, **kwargs):
     payload = kwargs["json"]
     try:
         t0 = time.time()
-        options = {
-            "headers": {
-                "Debug": "true",
-            },
-        }
+        options = {"headers": {"Debug": "true"}}
         parsed = urlparse(url)
         if parsed.scheme == "https" and parsed.netloc == "prod.tecken.dev":
             options["verify"] = False
@@ -133,9 +129,9 @@ def post_patiently(url, **kwargs):
             )
             raise ConnectionError()
         if resp.status_code != 200:
-            click.echo("PAYLOAD:", json.dumps(payload))
-            click.echo("Got HTTP {}".format(resp.status_code))
-            click.echo("CONTENT: {}".format(resp.content))
+            click.echo(f"PAYLOAD: {json.dumps(payload)}")
+            click.echo(f"Got HTTP {resp.status_code}")
+            click.echo(f"CONTENT: {resp.content}")
             raise ConnectionError()
         data = resp.json()
         t1 = time.time()
@@ -204,13 +200,11 @@ def run(input_dir, url, limit=None, batch_size=1):
         click.echo("\n")
         click.echo("IN CONCLUSION...")
         if one["downloads"]["count"] and sum(one["downloads"]["time"]):
+            downloads_speed = sizeof_fmt(
+                sum(one["downloads"]["size"]) / sum(one["downloads"]["time"])
+            )
             click.echo(
-                "Final Average Download Speed".ljust(P)
-                + "{}/s".format(
-                    sizeof_fmt(
-                        sum(one["downloads"]["size"]) / sum(one["downloads"]["time"])
-                    )
-                )
+                "Final Average Download Speed".ljust(P) + f"{downloads_speed}/s"
             )
         total_time_everything_else = (
             sum(one["time"])
@@ -218,11 +212,11 @@ def run(input_dir, url, limit=None, batch_size=1):
             - sum(one["cache_lookups"]["time"])
         )
         click.echo(
-            "Total time NOT downloading or querying cache  "
+            "Total time NOT downloading or querying cache:    "
             + time_fmt(total_time_everything_else)
         )
         click.echo(
-            "Average time NOT downloading or querying cache"
+            "Average time NOT downloading or querying cache:  "
             + time_fmt(total_time_everything_else / len(one["time"]))
         )
 
@@ -280,7 +274,7 @@ def run(input_dir, url, limit=None, batch_size=1):
                     payload = {"jobs": list(bundle)}
                     bundle = []
 
-                print("FILE: %s" % filename, file=logfile)
+                print(f"FILE: {filename}", file=logfile)
                 print("PAYLOAD (as JSON)", file=logfile)
                 print("-" * 79, file=logfile)
                 print(json.dumps(payload), file=logfile)
