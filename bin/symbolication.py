@@ -203,9 +203,7 @@ def run(input_dir, url, limit=None, batch_size=1):
             downloads_speed = sizeof_fmt(
                 sum(one["downloads"]["size"]) / sum(one["downloads"]["time"])
             )
-            click.echo(
-                "Final Average Download Speed".ljust(P) + f"{downloads_speed}/s"
-            )
+            click.echo("Final Average Download Speed".ljust(P) + f"{downloads_speed}/s")
         total_time_everything_else = (
             sum(one["time"])
             - sum(one["downloads"]["time"])

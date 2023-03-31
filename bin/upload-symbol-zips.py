@@ -18,38 +18,38 @@ import requests
 from requests.exceptions import ReadTimeout, ConnectionError
 
 
-ZIPS_DIR = 'upload-zips'
+ZIPS_DIR = "upload-zips"
 
 
 class BadGatewayError(Exception):
     """502 error from the server."""
 
 
-def sizeof_fmt(num, suffix='B'):
-    for unit in ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z']:
+def sizeof_fmt(num, suffix="B"):
+    for unit in ["", "K", "M", "G", "T", "P", "E", "Z"]:
         if abs(num) < 1024.0:
-            return '%3.1f%s%s' % (num, unit, suffix)
+            return "%3.1f%s%s" % (num, unit, suffix)
         num /= 1024.0
-    return '%.1f%s%s' % (num, 'Yi', suffix)
+    return "%.1f%s%s" % (num, "Yi", suffix)
 
 
 def parse_file_size(s):
-    parsed = re.findall(r'([\d\.]+)([gmbk]+)', s)
+    parsed = re.findall(r"([\d\.]+)([gmbk]+)", s)
     if not parsed:
         number = s
-        unit = 'b'
+        unit = "b"
     else:
         number, unit = parsed[0]
     number = float(number)
     unit = unit.lower()
 
-    if unit == 'b':
+    if unit == "b":
         pass
-    elif unit in ('k', 'kb'):
+    elif unit in ("k", "kb"):
         number *= 1024
-    elif unit in ('m', 'mb'):
+    elif unit in ("m", "mb"):
         number *= 1024 * 1024
-    elif unit in ('g', 'gb'):
+    elif unit in ("g", "gb"):
         number *= 1024 * 1024 * 1024
     else:
         raise NotImplementedError(unit)
@@ -58,14 +58,16 @@ def parse_file_size(s):
 
 def upload(filepath, url, auth_token, max_retries=5, timeout=300):
     basename = os.path.basename(filepath)
-    click.echo(click.style(
-        'About to upload {} ({}) to {}'.format(
-            filepath,
-            sizeof_fmt(os.stat(filepath).st_size),
-            url,
-        ),
-        fg='green'
-    ))
+    click.echo(
+        click.style(
+            "About to upload {} ({}) to {}".format(
+                filepath,
+                sizeof_fmt(os.stat(filepath).st_size),
+                url,
+            ),
+            fg="green",
+        )
+    )
     retries = 0
     sleeptime = 5
     while True:
@@ -73,9 +75,9 @@ def upload(filepath, url, auth_token, max_retries=5, timeout=300):
             t0 = time.time()
             response = requests.post(
                 url,
-                files={basename: open(filepath, 'rb')},
+                files={basename: open(filepath, "rb")},
                 headers={
-                    'auth-token': auth_token,
+                    "auth-token": auth_token,
                 },
                 timeout=timeout,
             )
@@ -90,65 +92,69 @@ def upload(filepath, url, auth_token, max_retries=5, timeout=300):
         except (ReadTimeout, BadGatewayError) as exception:
             t1 = time.time()
             retries += 1
-            click.echo(click.style(
-                'Deliberately sleeping for {} seconds'.format(sleeptime),
-                fg='yellow'
-            ))
+            click.echo(
+                click.style(
+                    "Deliberately sleeping for {} seconds".format(sleeptime),
+                    fg="yellow",
+                )
+            )
             time.sleep(sleeptime)
             if retries >= max_retries:
                 raise
-            click.echo(click.style(
-                'Retrying (after {:.1f}s) due to {}: {}'.format(
-                    t1 - t0,
-                    exception.__class__.__name__,
-                    exception,
-                ),
-                fg='yellow'
-            ))
+            click.echo(
+                click.style(
+                    "Retrying (after {:.1f}s) due to {}: {}".format(
+                        t1 - t0,
+                        exception.__class__.__name__,
+                        exception,
+                    ),
+                    fg="yellow",
+                )
+            )
 
     if response.status_code == 201:
-        click.echo(click.style(
-            'Took {} seconds to upload {} ({} - {}/s)'.format(
-                round(t1 - t0, 1),
-                basename,
-                sizeof_fmt(os.stat(filepath).st_size),
-                sizeof_fmt(os.stat(filepath).st_size / (t1 - t0))
-            ),
-            fg='green'
-        ))
+        click.echo(
+            click.style(
+                "Took {} seconds to upload {} ({} - {}/s)".format(
+                    round(t1 - t0, 1),
+                    basename,
+                    sizeof_fmt(os.stat(filepath).st_size),
+                    sizeof_fmt(os.stat(filepath).st_size / (t1 - t0)),
+                ),
+                fg="green",
+            )
+        )
         return True
     else:
-        click.echo(click.style(
-            'Failed to upload! Status code: {}'.format(response.status_code)
-        ))
+        click.echo(
+            click.style(
+                "Failed to upload! Status code: {}".format(response.status_code)
+            )
+        )
         try:
             click.echo(response.json())
         except JSONDecodeError:
             click.echo(response.content)
         click.echo(
             click.style(
-                'Failed to upload! Status: {}'.format(response.status_code),
-                fg='red'
+                "Failed to upload! Status: {}".format(response.status_code), fg="red"
             )
         )
 
 
 def upload_by_download_url(
-    url,
-    auth_token,
-    download_url,
-    content_length=None,
-    max_retries=5,
-    timeout=300
+    url, auth_token, download_url, content_length=None, max_retries=5, timeout=300
 ):
-    click.echo(click.style(
-        'About to upload {} ({}) to {}'.format(
-            download_url,
-            'n/a' if content_length is None else sizeof_fmt(content_length),
-            url,
-        ),
-        fg='green'
-    ))
+    click.echo(
+        click.style(
+            "About to upload {} ({}) to {}".format(
+                download_url,
+                "n/a" if content_length is None else sizeof_fmt(content_length),
+                url,
+            ),
+            fg="green",
+        )
+    )
     retries = 0
     sleeptime = 5
     while True:
@@ -156,9 +162,9 @@ def upload_by_download_url(
             t0 = time.time()
             response = requests.post(
                 url,
-                data={'url': download_url},
+                data={"url": download_url},
                 headers={
-                    'auth-token': auth_token,
+                    "auth-token": auth_token,
                 },
                 timeout=timeout,
             )
@@ -173,77 +179,91 @@ def upload_by_download_url(
         except (ConnectionError, ReadTimeout, BadGatewayError) as exc:
             t1 = time.time()
             retries += 1
-            click.echo(click.style(
-                'Deliberately sleeping for {} seconds'.format(sleeptime),
-                fg='yellow'
-            ))
+            click.echo(
+                click.style(
+                    "Deliberately sleeping for {} seconds".format(sleeptime),
+                    fg="yellow",
+                )
+            )
             time.sleep(sleeptime)
             if retries >= max_retries:
                 raise
-            click.echo(click.style(
-                'Retrying (after {:.1f}s) due to {}: {}'.format(
-                    t1 - t0, exc.__class__.__name__, exc
-                ),
-                fg='yellow'
-            ))
+            click.echo(
+                click.style(
+                    "Retrying (after {:.1f}s) due to {}: {}".format(
+                        t1 - t0, exc.__class__.__name__, exc
+                    ),
+                    fg="yellow",
+                )
+            )
 
     if response.status_code == 201:
         if content_length is None:
-            click.echo(click.style(
-                'Took {} seconds to upload by download url {}'.format(
-                    round(t1 - t0, 1),
-                    download_url,
-                ),
-                fg='green'
-            ))
+            click.echo(
+                click.style(
+                    "Took {} seconds to upload by download url {}".format(
+                        round(t1 - t0, 1),
+                        download_url,
+                    ),
+                    fg="green",
+                )
+            )
         else:
-            click.echo(click.style(
-                'Took {} seconds to upload by download url '
-                '{} ({} - {}/s)'.format(
-                    round(t1 - t0, 1),
-                    download_url,
-                    sizeof_fmt(content_length),
-                    sizeof_fmt(content_length / (t1 - t0))
-                ),
-                fg='green'
-            ))
+            click.echo(
+                click.style(
+                    "Took {} seconds to upload by download url "
+                    "{} ({} - {}/s)".format(
+                        round(t1 - t0, 1),
+                        download_url,
+                        sizeof_fmt(content_length),
+                        sizeof_fmt(content_length / (t1 - t0)),
+                    ),
+                    fg="green",
+                )
+            )
         return True
     else:
-        click.echo(click.style(
-            'Failed to upload! Status code: {}'.format(response.status_code)
-        ))
+        click.echo(
+            click.style(
+                "Failed to upload! Status code: {}".format(response.status_code)
+            )
+        )
         try:
             click.echo(response.json())
         except JSONDecodeError:
             click.echo(response.content)
         click.echo(
             click.style(
-                'Failed to upload! Status: {}'.format(response.status_code),
-                fg='red'
+                "Failed to upload! Status: {}".format(response.status_code), fg="red"
             )
         )
 
 
 @click.command()
 @click.option(
-    '--zips-dir',
-    help='Where all .zip files were saved (default {})'.format(ZIPS_DIR)
+    "--zips-dir", help="Where all .zip files were saved (default {})".format(ZIPS_DIR)
 )
-@click.option('--max-size', default='1000mb', help=(
-    'Max size of files to attempt to upload.'
-))
-@click.option('-n', '--number', default=1, type=int)
-@click.option('-t', '--timeout', default=300, type=int)
-@click.option('--delete-uploaded-file', is_flag=True, help=(
-    'Delete the file that was successfully uploaded.'
-))
-@click.option('--download-urls-from-stdin', is_flag=True, help=(
-    'If set, expect to read a list of URLs from stdin.'
-))
-@click.option('-d', '--download-url', help=(
-    'Instead of upload a local file, post a URL to download'
-))
-@click.argument('url', nargs=1, required=False)
+@click.option(
+    "--max-size", default="1000mb", help=("Max size of files to attempt to upload.")
+)
+@click.option("-n", "--number", default=1, type=int)
+@click.option("-t", "--timeout", default=300, type=int)
+@click.option(
+    "--delete-uploaded-file",
+    is_flag=True,
+    help=("Delete the file that was successfully uploaded."),
+)
+@click.option(
+    "--download-urls-from-stdin",
+    is_flag=True,
+    help=("If set, expect to read a list of URLs from stdin."),
+)
+@click.option(
+    "-d",
+    "--download-url",
+    help=("Instead of upload a local file, post a URL to download"),
+)
+@click.argument("url", nargs=1, required=False)
 def run(
     url=None,
     number=1,
@@ -257,67 +277,62 @@ def run(
     download_urls = []
     if download_urls_from_stdin:
         for line in sys.stdin:
-            for url_ in [x for x in line.split() if '://' in x]:
+            for url_ in [x for x in line.split() if "://" in x]:
                 download_urls.append(url_)
     elif download_url:
         download_urls.append(download_url)
-    url = url or 'http://localhost:8000/upload/'
+    url = url or "http://localhost:8000/upload/"
     if not urlparse(url).path:
-        url += '/upload/'
-    elif urlparse(url).path == '/':
-        url += 'upload/'
-    assert url.endswith('/upload/'), url
+        url += "/upload/"
+    elif urlparse(url).path == "/":
+        url += "upload/"
+    assert url.endswith("/upload/"), url
     try:
-        auth_token = os.environ['AUTH_TOKEN']
+        auth_token = os.environ["AUTH_TOKEN"]
     except KeyError:
         raise click.ClickException(
-            'You have to set environment variable AUTH_TOKEN first.'
-        )
+            "You have to set environment variable AUTH_TOKEN first."
+        ) from None
 
-    max_size = max_size or '250m'
+    max_size = max_size or "250m"
     max_size_bytes = parse_file_size(max_size)
 
     for download_url in download_urls:
-        if download_url.endswith('index.json'):
+        if download_url.endswith("index.json"):
             get = requests.get(download_url)
             assert get.status_code == 200, get.status_code
-            files = get.json()['files']
-            files = [x for x in files if x['size'] < max_size_bytes]
+            files = get.json()["files"]
+            files = [x for x in files if x["size"] < max_size_bytes]
             file = random.choice(files)
-            download_url = download_url.replace('index.json', file['uri'])
-            content_length = file['size']
+            download_url = download_url.replace("index.json", file["uri"])
+            content_length = file["size"]
         else:
             try:
                 head = requests.head(download_url)
                 attempts = 0
                 while head.status_code >= 300 and head.status_code < 400:
                     attempts += 1
-                    head = requests.head(head.headers['location'])
+                    head = requests.head(head.headers["location"])
                     if attempts >= 10:
-                        raise Exception('Near infinite redirect loop')
+                        raise Exception("Near infinite redirect loop")
                 assert head.status_code == 200, head.status_code
-                content_length = int(head.headers['Content-Length'])
+                content_length = int(head.headers["Content-Length"])
             except ConnectionError:
-                click.echo(click.style(
-                    'Unable to HEAD check {} in advance to see its '
-                    'size. Proceeding anyway.'.format(
-                        download_url,
-                    ),
-                    fg='yellow'
-                ))
+                click.echo(
+                    click.style(
+                        "Unable to HEAD check {} in advance to see its "
+                        "size. Proceeding anyway.".format(
+                            download_url,
+                        ),
+                        fg="yellow",
+                    )
+                )
                 content_length = None
-        if (
-            content_length is not None and
-            content_length > max_size_bytes
-
-        ):
+        if content_length is not None and content_length > max_size_bytes:
             raise click.ClickException(
-                '{} is {} but the max is {}'.format(
+                "{} is {} but the max is {}".format(
                     download_url,
-                    (
-                        'n/a' if content_length is None
-                        else sizeof_fmt(content_length)
-                    ),
+                    ("n/a" if content_length is None else sizeof_fmt(content_length)),
                     sizeof_fmt(max_size_bytes),
                 )
             )
@@ -335,25 +350,20 @@ def run(
 
     zips_dir = zips_dir or ZIPS_DIR
     if not os.path.isdir(zips_dir):
-        raise click.ClickException(
-            'Directory {} does not exist'.format(zips_dir)
-        )
-    zips = glob.glob(os.path.join(zips_dir, '*.zip'))
+        raise click.ClickException("Directory {} does not exist".format(zips_dir))
+    zips = glob.glob(os.path.join(zips_dir, "*.zip"))
     if not zips:
         raise click.ClickException(
-            'Directory {} contains no .zip files'.format(zips_dir)
+            "Directory {} contains no .zip files".format(zips_dir)
         )
 
     def locked(fn):
-        return os.path.isfile(fn + '.locked')
+        return os.path.isfile(fn + ".locked")
 
-    zips = [
-        x for x in zips
-        if os.stat(x).st_size < max_size_bytes and not locked(x)
-    ]
+    zips = [x for x in zips if os.stat(x).st_size < max_size_bytes and not locked(x)]
     if not zips:
         raise click.ClickException(
-            'There fewer than {} files less than {}'.format(
+            "There fewer than {} files less than {}".format(
                 number,
                 max_size,
             )
@@ -363,28 +373,22 @@ def run(
     upload_failures = 0
 
     for zip_ in zips[:number]:
-        with open(zip_ + '.locked', 'w') as f:
-            f.write('locked {}\n'.format(time.time()))
+        with open(zip_ + ".locked", "w") as f:
+            f.write("locked {}\n".format(time.time()))
         try:
             successful = upload(zip_, url, auth_token, timeout=timeout)
             if not successful:
                 upload_failures += 1
             if successful and delete_uploaded_file:
-                click.style(
-                    'Deleting zip file {}'.format(
-                        zip_
-                    )
-                )
+                click.style("Deleting zip file {}".format(zip_))
                 os.remove(zip_)
         finally:
-            if os.path.isfile(zip_ + '.locked'):
-                os.remove(zip_ + '.locked')
+            if os.path.isfile(zip_ + ".locked"):
+                os.remove(zip_ + ".locked")
 
     if upload_failures:
-        raise click.ClickException(
-            '{} files failed to upload'.format(upload_failures)
-        )
+        raise click.ClickException("{} files failed to upload".format(upload_failures))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     run()

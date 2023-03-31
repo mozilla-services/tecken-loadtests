@@ -44,6 +44,14 @@ build:  ## | Build Docker image for testing with
 	${DC} build --no-cache --build-arg userid=${MYUID} --build-arg groupid=${MYGID} base
 	touch .docker-build
 
+.PHONY: lint
+lint:  ## | Lint code in this repo
+	${DC} run base /bin/bash -c "bin/run_lint.sh"
+
+.PHONY: lintfix
+lintfix:  ## | Lint code in this repo
+	${DC} run base /bin/bash -c "bin/run_lint.sh --check"
+
 .PHONY: clean
 clean:  ## | Delete artifacts
 	${DC} stop

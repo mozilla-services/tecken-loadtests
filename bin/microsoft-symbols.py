@@ -54,13 +54,13 @@ import requests
 def _load(search):
     here = os.path.dirname(__file__)
     uris = set()
-    with open(os.path.join(here, 'found-on-msdl.log')) as f:
+    with open(os.path.join(here, "found-on-msdl.log")) as f:
         for line in f:
-            if not line.strip() or line.startswith('#'):
+            if not line.strip() or line.startswith("#"):
                 continue
-            symbol, debugid = line.strip().split('/')[-3:-1]
-            filename = symbol.replace('.pdb', '.sym')
-            uri = '/'.join([symbol, debugid, filename])
+            symbol, debugid = line.strip().split("/")[-3:-1]
+            filename = symbol.replace(".pdb", ".sym")
+            uri = "/".join([symbol, debugid, filename])
             if search and search.lower() not in uri.lower():
                 continue
             uris.add(uri)
@@ -70,28 +70,28 @@ def _load(search):
 def send(base_url, number_files=1, search=None):
     uris = _load(search=search)
     for uri in random.sample(uris, min(len(uris), number_files)):
-        url = base_url + '/' + uri
+        url = base_url + "/" + uri
         print("URI:", uri)
         response = requests.get(url, allow_redirects=False)
         if response.status_code == 302:
-            print('Yay!', response.headers['Location'])
+            print("Yay!", response.headers["Location"])
         else:
             print(response.status_code, repr(response.content))
         print()
 
 
 @click.command()
-@click.option('-n', '--number-files', default=1, type=int)
-@click.option('-s', '--search', default=None)
-@click.argument('url', nargs=1, required=False)
+@click.option("-n", "--number-files", default=1, type=int)
+@click.option("-s", "--search", default=None)
+@click.argument("url", nargs=1, required=False)
 def run(
     url=None,
     search=None,
     number_files=1,
 ):
-    url = url or 'http://localhost:8000'
+    url = url or "http://localhost:8000"
     send(url, number_files=number_files, search=search)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     run()

@@ -59,11 +59,13 @@ class WebsiteUser(HttpUser):
         payload_path, payload = PAYLOADS[payload_id]
 
         resp = self.client.post("/symbolicate/v5", headers=headers, json=payload)
-        assert resp.status_code == 200, f"failed with {resp.status_code}: {payload_path}"
+        assert (
+            resp.status_code == 200
+        ), f"failed with {resp.status_code}: {payload_path}"
 
         json_data = resp.json()
 
         try:
             jsonschema.validate(json_data, SCHEMA)
-        except jsonschema.exceptions.ValidationError:
-            raise AssertionError("response didn't validate")
+        except jsonschema.exceptions.ValidationError as exc:
+            raise AssertionError("response didn't validate") from exc
