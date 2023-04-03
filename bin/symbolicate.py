@@ -54,7 +54,7 @@ def request_stack(url, payload, is_debug):
     if is_debug:
         click.echo(click.style(f"Response: {resp.status_code} {resp.reason}"))
         for key, val in resp.headers.items():
-            click.echo(click.style(f"{key}: {val}"))
+            click.echo(click.style(f"resp: {key}: {val}"))
 
     if resp.status_code != 200:
         # The server returned something "bad", so print out the things that
@@ -255,7 +255,9 @@ def compare_symbolication(ctx, url1, url2, stackfile):
         ctx.exit(1)
 
     click.echo(url1_debug)
+    click.echo(click.style(f"Time: {url1_debug.get('time'):,.3}s", fg="yellow"))
     click.echo(url2_debug)
+    click.echo(click.style(f"Time: {url2_debug.get('time'):,.3}s", fg="yellow"))
 
 
 if __name__ == "__main__":
