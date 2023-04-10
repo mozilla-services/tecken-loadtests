@@ -143,26 +143,6 @@ In the script are various things you can adjust like number of users and
 duration.
 
 
-Load testing with Molotov
--------------------------
-
-To start a `molotov testing <https://molotov.readthedocs.io/>`_ run, there's
-a ``loadtest.py`` script. Basic usage:
-
-::
-
-   $ make shell
-   app@...:/app$ molotov --max-runs 10 -cx loadtest.py
-
-By default the base URL for this will be ``http://localhost:8000``. If
-you want to override that, change the environment variable
-``URL_SERVER``. For example:
-
-::
-
-   app@...:/app$ URL_SERVER=https://symbols.dev.mozaws.net molotov --max-runs 10 -cx loadtest.py
-
-
 Testing Tecken
 ==============
 
