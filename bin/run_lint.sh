@@ -3,7 +3,15 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
+#
+# Usage: bin/run_lint.sh
 
-# Run this in the container.
+set -eo pipefail
 
-URL_SERVER=${URL_SERVER} molotov -c -v -d ${TEST_DURATION} loadtest.py
+PYTHON_VERSION=$(python --version)
+
+echo "black (${PYTHON_VERSION})"
+black $1 bin locust-eliot
+
+echo "ruff (${PYTHON_VERSION})"
+ruff bin locust-eliot

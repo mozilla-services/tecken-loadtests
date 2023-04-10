@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -24,30 +26,30 @@ import requests
 from requests.exceptions import ConnectionError
 
 
-def sizeof_fmt(num, suffix='B'):
-    for unit in ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z']:
+def sizeof_fmt(num, suffix="B"):
+    for unit in ["", "K", "M", "G", "T", "P", "E", "Z"]:
         if abs(num) < 1024.0:
-            return '%3.1f%s%s' % (num, unit, suffix)
+            return "%3.1f%s%s" % (num, unit, suffix)
         num /= 1024.0
-    return '%.1f%s%s' % (num, 'Yi', suffix)
+    return "%.1f%s%s" % (num, "Yi", suffix)
 
 
 def number_fmt(x):
     if isinstance(x, int):
         return str(x)
-    return '{:.2f}'.format(x)
+    return "{:.2f}".format(x)
 
 
 def time_fmt(x):
-    if x == 'n/a':
+    if x == "n/a":
         return x
     if x > 500:
         minutes = x // 60
         seconds = x % 60
-        return '{}m{:.1f}s'.format(minutes, seconds)
+        return "{}m{:.1f}s".format(minutes, seconds)
     # elif x < 0.001:
     #     return '{:.2f}ms'.format(x * 1000)
-    return '{:.3f}s'.format(x)
+    return "{:.3f}s".format(x)
 
 
 def wc_dir(path):
@@ -56,7 +58,7 @@ def wc_dir(path):
 
 def wc_file(path):
     with open(path) as fp:
-        return fp.read().count('\n')
+        return fp.read().count("\n")
 
 
 def listify(d):
@@ -83,35 +85,37 @@ def _stats(numbers):
             statistics.stdev(numbers),
         )
     except statistics.StatisticsError:
-        return (
-            'n/a', 'n/a', 'n/a'
-        )
+        return ("n/a", "n/a", "n/a")
 
 
 @click.command()
 @click.option(
-    '--microsoft-like-only', default=False,
-    help='whether or not to do Microsoft-like symbols only'
+    "--microsoft-like-only",
+    default=False,
+    help="whether or not to do Microsoft-like symbols only",
 )
 @click.option(
-    '--max-requests', type=int, required=False,
-    help='maximum number of download requests to do; defaults to "all"'
+    "--max-requests",
+    type=int,
+    required=False,
+    help='maximum number of download requests to do; defaults to "all"',
 )
 @click.argument(
-    'base_url', nargs=1,
+    "base_url",
+    nargs=1,
     # help='base URL to download from'
 )
 @click.argument(
-    'csv_file', nargs=1, type=click.Path(),
+    "csv_file",
+    nargs=1,
+    type=click.Path(),
     # help='csv file with symbols to download'
 )
-@click.argument(
-    'missing_csv_file', nargs=1, type=click.Path(), required=False
-)
+@click.argument("missing_csv_file", nargs=1, type=click.Path(), required=False)
 def run(microsoft_like_only, max_requests, base_url, csv_file, missing_csv_file):
     uris_count = wc_file(csv_file)
-    print(format(uris_count, ','), 'LINES')
-    print('\n')
+    print(format(uris_count, ","), "LINES")
+    print("\n")
 
     jobs_done = []
 
@@ -123,7 +127,7 @@ def run(microsoft_like_only, max_requests, base_url, csv_file, missing_csv_file)
         with open(missing_csv_file) as f:
             reader = csv.reader(f)
             header = next(reader)
-            _expect = ['debug_file', 'debug_id', 'code_file', 'code_id']
+            _expect = ["debug_file", "debug_id", "code_file", "code_id"]
             assert header == _expect, header
             for row in reader:
                 debug_file, debug_id, code_file, code_id = row
@@ -133,57 +137,55 @@ def run(microsoft_like_only, max_requests, base_url, csv_file, missing_csv_file)
                 )
 
     def print_total_jobs_done(finished):
-        print('\n')
+        print("\n")
         print(
-            (finished and 'JOBS DONE' or 'JOBS DONE SO FAR').ljust(20),
-            format(len(jobs_done), ',')
+            (finished and "JOBS DONE" or "JOBS DONE SO FAR").ljust(20),
+            format(len(jobs_done), ","),
         )
         print(
-            'IGNORE HITS'.ljust(20),
+            "IGNORE HITS".ljust(20),
             ignore_hits,
-            ' ({:.1f}%)'.format(
-                100 * ignore_hits / len(jobs_done)
-            )
+            " ({:.1f}%)".format(100 * ignore_hits / len(jobs_done)),
         )
 
         total_duration = times[-1] - times[0]
-        print('RAN FOR'.ljust(20), time_fmt(total_duration))
+        print("RAN FOR".ljust(20), time_fmt(total_duration))
         print(
-            'AVERAGE RATE'.ljust(20),
+            "AVERAGE RATE".ljust(20),
             number_fmt(len(jobs_done) / total_duration),
-            'requests/s'
+            "requests/s",
         )
 
         by_got_times = defaultdict(list)
         by_got_matched = defaultdict(list)
         for job in jobs_done:
-            expect = job['expect']
-            got = job['got']
+            expect = job["expect"]
+            got = job["got"]
             matched = (
-                expect == got or
-                (expect == 403 and got == 404) or
-                (expect == 200 and got == 302)
+                expect == got
+                or (expect == 403 and got == 404)
+                or (expect == 200 and got == 302)
             )
 
             by_got_matched[got].append(matched)
-            by_got_times[got].append((job['time'], job['internal_time']))
+            by_got_times[got].append((job["time"], job["internal_time"]))
 
         N = 13
-        P = ' '
+        P = " "
         print()
         print(
-            'STATUS CODE'.ljust(N, P),
-            'COUNT'.rjust(N, P),
-            'MEDIAN'.rjust(N, P),
-            '(INTERNAL)'.rjust(N, P),
-            'AVERAGE'.rjust(N, P),
-            '(INTERNAL)'.rjust(N, P),
-            '% RIGHT'.rjust(N, P),
+            "STATUS CODE".ljust(N, P),
+            "COUNT".rjust(N, P),
+            "MEDIAN".rjust(N, P),
+            "(INTERNAL)".rjust(N, P),
+            "AVERAGE".rjust(N, P),
+            "(INTERNAL)".rjust(N, P),
+            "% RIGHT".rjust(N, P),
         )
         for key in by_got_times:
             request_times = [x[0] for x in by_got_times[key]]
             if len(request_times) <= 2:
-                print('Too few datapoints for {!r}'.format(key))
+                print("Too few datapoints for {!r}".format(key))
                 continue
             median, average, std = _stats(request_times)
             internal_times = [x[1] for x in by_got_times[key] if x[1]]
@@ -201,44 +203,44 @@ def run(microsoft_like_only, max_requests, base_url, csv_file, missing_csv_file)
                 number_fmt(right).rjust(N, P),
             )
 
-        print('Ignore hits', ignore_hits)
-        print('Not ignore hits', len(cache_hits))
+        print("Ignore hits", ignore_hits)
+        print("Not ignore hits", len(cache_hits))
 
     times = []
 
     def total_duration():
         if not times:
-            return 'na'
+            return "na"
         seconds = time.time() - times[0]
         if seconds < 100:
-            return '{:.1f} seconds'.format(seconds)
+            return "{:.1f} seconds".format(seconds)
         else:
-            return '{:.1f} minutes'.format(seconds / 60)
+            return "{:.1f} minutes".format(seconds / 60)
 
     def speed_per_second(last=10):
         if not times:
-            return 'na'
+            return "na"
         if len(times) > last:
             t = time.time() - times[-last]
             L = last
         else:
             t = time.time() - times[0]
             L = len(times)
-        return '{:.1f}'.format(L / t)
+        return "{:.1f}".format(L / t)
 
     def speed_per_minute(last=10):
         if not times:
-            return 'na'
+            return "na"
         if len(times) > last:
             t = time.time() - times[-last]
             L = last
         else:
             t = time.time() - times[0]
             L = len(times)
-        return '{:.1f}'.format(L * 60 / t)
+        return "{:.1f}".format(L * 60 / t)
 
     def get_patiently(*args, **kwargs):
-        attempts = kwargs.pop('attempts', 0)
+        attempts = kwargs.pop("attempts", 0)
         try:
             t0 = time.time()
             req = requests.get(url, **kwargs, allow_redirects=False)
@@ -260,23 +262,23 @@ def run(microsoft_like_only, max_requests, base_url, csv_file, missing_csv_file)
     flattened_jobs = []
     for uri, status, private, count in jobs:
         if microsoft_like_only:
-            if not uri.endswith('.sym'):
+            if not uri.endswith(".sym"):
                 continue
             try:
-                if not uri.split('/')[-3].endswith('.pdb'):
+                if not uri.split("/")[-3].endswith(".pdb"):
                     continue
             except IndexError:
                 continue
 
-        for i in range(int(count)):
+        for _ in range(int(count)):
             flattened_jobs.append((uri, status, private, 1))
 
     random.shuffle(flattened_jobs)
 
     print(
-        'TIME'.ljust(10),
-        'INTERNAL'.ljust(10),
-        'URL',
+        "TIME".ljust(10),
+        "INTERNAL".ljust(10),
+        "URL",
     )
 
     try:
@@ -287,38 +289,38 @@ def run(microsoft_like_only, max_requests, base_url, csv_file, missing_csv_file)
             s3_uri = job[0]
             status_code = job[1]
 
-            uri = '/'.join(s3_uri.split('/')[-3:])
-            if uri.count('/') != 2:
+            uri = "/".join(s3_uri.split("/")[-3:])
+            if uri.count("/") != 2:
                 # Some junk that got in
                 continue
-            if ' ' in uri:
+            if " " in uri:
                 # bad CSV parsing apparently
                 continue
             url = urljoin(base_url, uri)
 
             params = {}
             try:
-                symbol, debugid, filename = uri.split('/')
+                symbol, debugid, filename = uri.split("/")
             except ValueError:
-                print('BAD uri: {!r}'.format(uri))
+                print("BAD uri: {!r}".format(uri))
                 continue
 
             key = (symbol, debugid)
             if key in code_files_and_ids:
                 code_file, code_id = code_files_and_ids[key]
-                params['code_file'] = code_file
-                params['code_id'] = code_id
+                params["code_file"] = code_file
+                params["code_id"] = code_id
 
             (t1, t0), resp = get_patiently(
                 url,
                 params=params,
                 headers={
-                    'debug': 'true',
-                }
+                    "debug": "true",
+                },
             )
             try:
-                internal_time = float(resp.headers['debug-time'])
-                if resp.headers['debug-time'] == '0':
+                internal_time = float(resp.headers["debug-time"])
+                if resp.headers["debug-time"] == "0":
                     ignore_hits += 1
                 elif internal_time < 0.01:
                     cache_hits.append(True)
@@ -330,44 +332,42 @@ def run(microsoft_like_only, max_requests, base_url, csv_file, missing_csv_file)
 
             print(
                 time_fmt(t1 - t0).ljust(10),
-                (
-                    internal_time is not None and
-                    time_fmt(internal_time) or
-                    'n/a'
-                ).ljust(10),
+                (internal_time is not None and time_fmt(internal_time) or "n/a").ljust(
+                    10
+                ),
                 url,
             )
 
             if cache_hits:
                 _cache_hits = len([x for x in cache_hits if x])
                 _cache_misses = len([x for x in cache_hits if not x])
-                fastcache = 100 * _cache_hits / (
-                    _cache_misses + _cache_hits
-                )
+                fastcache = 100 * _cache_hits / (_cache_misses + _cache_hits)
             else:
                 fastcache = 0.0
             out = (
-                ' {} of {} -- {} requests/s -- {} requests/min ({}) -- '
-                '{:.1f}% fastcache (last {})'.format(
-                    format(i + 1, ','),
-                    format(uris_count, ','),
+                " {} of {} -- {} requests/s -- {} requests/min ({}) -- "
+                "{:.1f}% fastcache (last {})".format(
+                    format(i + 1, ","),
+                    format(uris_count, ","),
                     speed_per_second(),
                     speed_per_minute(),
                     total_duration(),
                     fastcache,
                     len(cache_hits),
-                ).center(80, '=')
+                ).center(80, "=")
             )
-            print(out, end='')
-            print('\r' * len(out), end='')
+            print(out, end="")
+            print("\r" * len(out), end="")
 
             times.append(t0)
-            jobs_done.append({
-                'expect': int(status_code),
-                'got': resp.status_code,
-                'time': t1 - t0,
-                'internal_time': internal_time
-            })
+            jobs_done.append(
+                {
+                    "expect": int(status_code),
+                    "got": resp.status_code,
+                    "time": t1 - t0,
+                    "internal_time": internal_time,
+                }
+            )
     except KeyboardInterrupt:
         print_total_jobs_done(False)
         return 1
@@ -376,5 +376,5 @@ def run(microsoft_like_only, max_requests, base_url, csv_file, missing_csv_file)
     return 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     run()

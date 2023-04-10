@@ -5,6 +5,7 @@
 import json
 import pathlib
 import random
+import time
 
 import jsonschema
 from locust import HttpUser, task
@@ -58,12 +59,18 @@ class WebsiteUser(HttpUser):
         payload_id = int(random.uniform(0, len(PAYLOADS)))
         payload_path, payload = PAYLOADS[payload_id]
 
-        resp = self.client.post("/symbolicate/v5", headers=headers, json=payload)
-        assert resp.status_code == 200, f"failed with {resp.status_code}: {payload_path}"
+        t = time.time()
+        resp = self.client.post("/symbolicate/v5", headers=headers, json=payload, timeout=60)
+
+        end_t = time.time()
+        delta_t = int(end_t - t)
+        assert (
+            resp.status_code == 200
+        ), f"failed with {resp.status_code}: {payload_path} ({delta_t:,}s)"
 
         json_data = resp.json()
 
         try:
             jsonschema.validate(json_data, SCHEMA)
-        except jsonschema.exceptions.ValidationError:
-            raise AssertionError("response didn't validate")
+        except jsonschema.exceptions.ValidationError as exc:
+            raise AssertionError("response didn't validate") from exc

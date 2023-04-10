@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -16,40 +18,38 @@ import click
 import requests
 
 
-def sizeof_fmt(num, suffix='B'):
-    for unit in ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z']:
+def sizeof_fmt(num, suffix="B"):
+    for unit in ["", "K", "M", "G", "T", "P", "E", "Z"]:
         if abs(num) < 1024.0:
-            return '%3.1f%s%s' % (num, unit, suffix)
+            return "%3.1f%s%s" % (num, unit, suffix)
         num /= 1024.0
-    return '%.1f%s%s' % (num, 'Yi', suffix)
+    return "%.1f%s%s" % (num, "Yi", suffix)
 
 
 def format_seconds(s):
-    return '{:.1f}s'.format(s)
+    return "{:.1f}s".format(s)
 
 
 def analyze(scheme, domain, auth_token, limit):
-    base_url = scheme + '://' + domain
+    base_url = scheme + "://" + domain
     uploads = get_uploads(base_url, auth_token, limit)
-    print('Downloaded {} uploads'.format(len(uploads)))
+    print("Downloaded {} uploads".format(len(uploads)))
     # from pprint import pprint
     upload_times = []
     for upload in uploads:
-        if not upload['completed_at']:
+        if not upload["completed_at"]:
             continue
         completed_file_uploads = [
-            x for x in upload['file_uploads']
-            if x['completed_at']
+            x for x in upload["file_uploads"] if x["completed_at"]
         ]
-        if (
-            not completed_file_uploads or
-            len(completed_file_uploads) != len(upload['file_uploads'])
+        if not completed_file_uploads or len(completed_file_uploads) != len(
+            upload["file_uploads"]
         ):
             # print("SKIP UPLOAD BECAUSE INCOMPLETE FILES")
             continue
 
-        upload_completed_at = dateutil.parser.parse(upload['completed_at'])
-        upload_created_at = dateutil.parser.parse(upload['created_at'])
+        upload_completed_at = dateutil.parser.parse(upload["completed_at"])
+        upload_created_at = dateutil.parser.parse(upload["created_at"])
         upload_diff = (upload_completed_at - upload_created_at).total_seconds()
         # print((created_at, completed_at, diff))
         # print((upload['size'], diff))
@@ -59,16 +59,13 @@ def analyze(scheme, domain, auth_token, limit):
         # ))
         file_upload_times = []
         for file_upload in completed_file_uploads:
-            completed_at = dateutil.parser.parse(file_upload['completed_at'])
-            created_at = dateutil.parser.parse(file_upload['created_at'])
+            completed_at = dateutil.parser.parse(file_upload["completed_at"])
+            created_at = dateutil.parser.parse(file_upload["created_at"])
             diff = (completed_at - created_at).total_seconds()
-            file_upload_times.append((diff, file_upload['size']))
-        upload_times.append((
-            upload_created_at,
-            upload_diff,
-            upload['size'],
-            file_upload_times
-        ))
+            file_upload_times.append((diff, file_upload["size"]))
+        upload_times.append(
+            (upload_created_at, upload_diff, upload["size"], file_upload_times)
+        )
 
     def F(x, right=True):
         if not isinstance(x, str):
@@ -76,17 +73,17 @@ def analyze(scheme, domain, auth_token, limit):
         return right and x.rjust(15) or x.center(15)
 
     def P(p):
-        return F('{:.1f}%'.format(p))
+        return F("{:.1f}%".format(p))
 
-    print('-' * 111)
+    print("-" * 111)
     print(
-        F('DATE', False),
-        F('SIZE', False),
-        F('TIME', False),
-        F('FILES', False),
-        F('SUM TIMES', False),
-        F('WIN', False),
-        F('SAVING', False),
+        F("DATE", False),
+        F("SIZE", False),
+        F("TIME", False),
+        F("FILES", False),
+        F("SUM TIMES", False),
+        F("WIN", False),
+        F("SAVING", False),
     )
 
     all_wins = []
@@ -98,7 +95,7 @@ def analyze(scheme, domain, auth_token, limit):
         all_wins.append(win)
         all_savings.append(saving)
         print(
-            F(date.strftime('%d %b %H:%M')),
+            F(date.strftime("%d %b %H:%M")),
             F(sizeof_fmt(size)),
             F(format_seconds(diff)),
             F(len(file_times)),
@@ -107,21 +104,21 @@ def analyze(scheme, domain, auth_token, limit):
             F(format_seconds(saving)),
         )
 
-    print('-' * 111)
+    print("-" * 111)
     print(
-        'AVERAGE WIN'.ljust(15),
+        "AVERAGE WIN".ljust(15),
         P(statistics.mean(all_wins)),
     )
     print(
-        'MEDIAN WIN'.ljust(15),
+        "MEDIAN WIN".ljust(15),
         P(statistics.median(all_wins)),
     )
     print(
-        'AVERAGE SAVINGS'.ljust(15),
+        "AVERAGE SAVINGS".ljust(15),
         F(format_seconds(statistics.mean(all_savings))),
     )
     print(
-        'MEDIAN SAVINGS'.ljust(15),
+        "MEDIAN SAVINGS".ljust(15),
         F(format_seconds(statistics.median(all_savings))),
     )
 
@@ -130,22 +127,26 @@ def get_uploads(base_url, auth_token, limit):
     uploads = []
     page = 1
     while len(uploads) < limit:
-        page_url = base_url + '/api/uploads/?page={}'.format(page)
+        page_url = base_url + "/api/uploads/?page={}".format(page)
         print(page_url)
-        response = requests.get(page_url, headers={
-            'auth-token': auth_token,
-        })
+        response = requests.get(
+            page_url,
+            headers={
+                "auth-token": auth_token,
+            },
+        )
         assert response.status_code == 200, response.status_code
         # total = response.json()['total']
-        for upload in response.json()['uploads']:
-            upload_url = base_url + '/api/uploads/upload/{}'.format(
-                upload['id']
+        for upload in response.json()["uploads"]:
+            upload_url = base_url + "/api/uploads/upload/{}".format(upload["id"])
+            response = requests.get(
+                upload_url,
+                headers={
+                    "auth-token": auth_token,
+                },
             )
-            response = requests.get(upload_url, headers={
-                'auth-token': auth_token,
-            })
             assert response.status_code == 200, response.status_code
-            upload['file_uploads'] = response.json()['upload']['file_uploads']
+            upload["file_uploads"] = response.json()["upload"]["file_uploads"]
             uploads.append(upload)
         page += 1
         # print('compare', limit, total, len(uploads))
@@ -153,35 +154,31 @@ def get_uploads(base_url, auth_token, limit):
 
 
 @click.command()
+@click.option("--limit", default=10, help="Number of uploads to look at (default 100)")
 @click.option(
-    '--limit',
-    default=10,
-    help='Number of uploads to look at (default 100)'
-)
-@click.option(
-    '--domain',
-    default='symbols.mozilla.org',
+    "--domain",
+    default="symbols.mozilla.org",
 )
 def run(
     limit,
     domain,
 ):
     try:
-        auth_token = os.environ['AUTH_TOKEN']
+        auth_token = os.environ["AUTH_TOKEN"]
     except KeyError:
         raise click.ClickException(
-            'You have to set environment variable AUTH_TOKEN first.'
-        )
+            "You have to set environment variable AUTH_TOKEN first."
+        ) from None
 
-    if '://' in domain:
-        scheme = domain.split('://')[0]
+    if "://" in domain:
+        scheme = domain.split("://")[0]
         domain = urlparse(domain).netloc
     else:
-        scheme = 'https'
+        scheme = "https"
 
     analyze(scheme, domain, auth_token, limit)
     return 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     run()
