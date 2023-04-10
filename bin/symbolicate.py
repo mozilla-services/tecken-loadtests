@@ -53,8 +53,8 @@ def request_stack(url, payload, is_debug):
     resp = requests.post(url, headers=headers, json=payload, **options)
     if is_debug:
         click.echo(click.style(f"Response: {resp.status_code} {resp.reason}"))
-        for key, val in resp.headers.items():
-            click.echo(click.style(f"resp: {key}: {val}"))
+        for key, val in sorted(resp.headers.items()):
+            click.echo(click.style(f"< {key}: {val}"))
 
     if resp.status_code != 200:
         # The server returned something "bad", so print out the things that
