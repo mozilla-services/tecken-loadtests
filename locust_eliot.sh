@@ -33,7 +33,7 @@ else
     exit 1
 fi
 
-LOCUST_FLAGS="--print-stats --headless"
+LOCUST_FLAGS="--headless"
 
 # Runname includes environment and any second argument
 DATE="$(date +'%Y%m%d-%H0000')"
@@ -46,14 +46,14 @@ USERS="3"
 RUNTIME="5m"
 RUNNAME="${DATE}-$1$2-prime"
 
-echo ">>> Locust start ${RUNNAME}...."
+echo "$(date): Locust start ${RUNNAME}...."
 locust -f locust-eliot/testfile.py \
     --host="${HOST}" \
     --users="${USERS}" \
     --run-time="${RUNTIME}" \
     --csv="${RUNNAME}" \
     ${LOCUST_FLAGS}
-echo ">>> Locust end ${RUNNAME}."
+echo "$(date): Locust end ${RUNNAME}."
 
 echo "${RUNNAME} users=${USERS} runtime=${RUNTIME}"
 python bin/print_locust_stats.py ${RUNNAME}
@@ -64,14 +64,14 @@ USERS="3"
 RUNTIME="10m"
 RUNNAME="${DATE}-$1$2-normal"
 
-echo ">>> Locust start ${RUNNAME}...."
+echo "$(date): Locust start ${RUNNAME}...."
 locust -f locust-eliot/testfile.py \
     --host="${HOST}" \
     --users="${USERS}" \
     --run-time="${RUNTIME}" \
     --csv="${RUNNAME}" \
     ${LOCUST_FLAGS}
-echo ">>> Locust end ${RUNNAME}."
+echo "$(date): Locust end ${RUNNAME}."
 
 echo "${RUNNAME} users=${USERS} runtime=${RUNTIME}"
 python bin/print_locust_stats.py ${RUNNAME}
@@ -82,14 +82,14 @@ USERS="5"
 RUNTIME="10m"
 RUNNAME="${DATE}-$1$2-high"
 
-echo ">>> Locust start ${RUNNAME}...."
+echo "$(date): Locust start ${RUNNAME}...."
 locust -f locust-eliot/testfile.py \
     --host="${HOST}" \
     --users="${USERS}" \
     --run-time="${RUNTIME}" \
     --csv="${RUNNAME}" \
     ${LOCUST_FLAGS}
-echo ">>> Locust end ${RUNNAME}."
+echo "$(date): Locust end ${RUNNAME}."
 
 echo "${RUNNAME} users=${USERS} runtime=${RUNTIME}"
 python bin/print_locust_stats.py ${RUNNAME}
