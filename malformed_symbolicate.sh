@@ -9,7 +9,8 @@
 # Before using, change the variables at the top to the ones you want.
 
 # HOST=https://symbolication.stage.mozaws.net
-HOST=https://stage.eliot.nonprod.dataservices.mozgcp.net
+# HOST=https://stage.eliot.nonprod.dataservices.mozgcp.net
+HOST=https://prod.eliot.prod.dataservices.mozgcp.net
 
 # APIVERSION=v4
 APIVERSION=v5
