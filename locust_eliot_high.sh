@@ -59,6 +59,24 @@ echo "${RUNNAME} users=${USERS} runtime=${RUNTIME}"
 python bin/print_locust_stats.py logs/${RUNNAME}
 read -p "Next? " nextvar
 
+# normal
+USERS="3"
+RUNTIME="10m"
+RUNNAME="${DATE}-$1$2-normal"
+
+echo "$(date): Locust start ${RUNNAME}...."
+locust -f locust-eliot/testfile.py \
+    --host="${HOST}" \
+    --users="${USERS}" \
+    --run-time="${RUNTIME}" \
+    --csv="logs/${RUNNAME}" \
+    ${LOCUST_FLAGS}
+echo "$(date): Locust end ${RUNNAME}."
+
+echo "${RUNNAME} users=${USERS} runtime=${RUNTIME}"
+python bin/print_locust_stats.py logs/${RUNNAME}
+read -p "Next? " nextvar
+
 # high
 USERS="5"
 RUNTIME="10m"

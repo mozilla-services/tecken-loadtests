@@ -41,28 +41,10 @@ DATE="$(date +'%Y%m%d-%H0000')"
 echo ">>> Host:    ${HOST}"
 read -p "Ready to start? " nextvar
 
-# prime
+# normal load
 USERS="3"
-RUNTIME="5m"
-RUNNAME="${DATE}-$1$2-prime"
-
-echo "$(date): Locust start ${RUNNAME}...."
-locust -f locust-eliot/testfile.py \
-    --host="${HOST}" \
-    --users="${USERS}" \
-    --run-time="${RUNTIME}" \
-    --csv="logs/${RUNNAME}" \
-    ${LOCUST_FLAGS}
-echo "$(date): Locust end ${RUNNAME}."
-
-echo "${RUNNAME} users=${USERS} runtime=${RUNTIME}"
-python bin/print_locust_stats.py logs/${RUNNAME}
-read -p "Next? " nextvar
-
-# high
-USERS="5"
-RUNTIME="10m"
-RUNNAME="${DATE}-$1$2-high"
+RUNTIME="30m"
+RUNNAME="${DATE}-$1$2-normal"
 
 echo "$(date): Locust start ${RUNNAME}...."
 locust -f locust-eliot/testfile.py \

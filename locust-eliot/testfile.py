@@ -12,6 +12,7 @@ from locust import HttpUser, task
 from locust import events
 
 
+TIMEOUT = 120
 SCHEMA = None
 PAYLOADS = []
 
@@ -60,7 +61,7 @@ class WebsiteUser(HttpUser):
         payload_path, payload = PAYLOADS[payload_id]
 
         t = time.time()
-        resp = self.client.post("/symbolicate/v5", headers=headers, json=payload, timeout=60)
+        resp = self.client.post("/symbolicate/v5", headers=headers, json=payload, timeout=TIMEOUT)
 
         end_t = time.time()
         delta_t = int(end_t - t)
