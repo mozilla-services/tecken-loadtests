@@ -10,11 +10,11 @@
 # urls at the top of the script before using.
 
 # Stage
-# URL1=https://symbolication.stage.mozaws.net/symbolicate/v4
-# URL2=https://stage.eliot.nonprod.dataservices.mozgcp.net/symbolicate/v4
+URL1=https://symbolication.stage.mozaws.net/symbolicate/v5
+URL2=https://stage.eliot.nonprod.dataservices.mozgcp.net/symbolicate/v5
 
 # Prod
-URL1=https://symbolication.services.mozilla.com/symbolicate/v5
-URL2=https://prod.eliot.prod.dataservices.mozgcp.net/symbolicate/v5
+# URL1=https://symbolication.services.mozilla.com/symbolicate/v5
+# URL2=https://prod.eliot.prod.dataservices.mozgcp.net/symbolicate/v5
 
 ./bin/symbolicate.py compare ${URL1} ${URL2} $1

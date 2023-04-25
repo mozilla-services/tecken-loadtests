@@ -12,8 +12,11 @@ from locust import HttpUser, task
 from locust import events
 
 
+TIMEOUT = 120
 SCHEMA = None
 PAYLOADS = []
+SCHEMADIR = "../schemas/"
+STACKSDIR = "../stacks/"
 
 
 def load_schema(path):
@@ -32,12 +35,12 @@ def system_setup(environment, **kwargs):
     global SCHEMA
 
     # This is a copy of the one in the tecken repo
-    schema_path = pathlib.Path("schemas/symbolicate_api_response_v5.json")
+    schema_path = pathlib.Path(SCHEMADIR) / "symbolicate_api_response_v5.json"
     SCHEMA = load_schema(schema_path)
     print("Schema loaded.")
 
     # Stacks are in the parent directory
-    stacks_dir = pathlib.Path("stacks/")
+    stacks_dir = pathlib.Path(STACKSDIR)
     for path in stacks_dir.glob("*.json"):
         path = path.resolve()
         stack = load_stack(path)
@@ -60,7 +63,9 @@ class WebsiteUser(HttpUser):
         payload_path, payload = PAYLOADS[payload_id]
 
         t = time.time()
-        resp = self.client.post("/symbolicate/v5", headers=headers, json=payload, timeout=60)
+        resp = self.client.post(
+            "/symbolicate/v5", headers=headers, json=payload, timeout=TIMEOUT
+        )
 
         end_t = time.time()
         delta_t = int(end_t - t)
