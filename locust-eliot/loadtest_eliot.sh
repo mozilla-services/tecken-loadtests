@@ -4,9 +4,9 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-# Usage: ./locust_eliot.sh ENV [RUNNAME]
+# Usage: ./loadtest_eliot.sh ENV [RUNNAME]
 #
-# Run it in the Docker container.
+# Run it in the Docker container in the locust-eliot/ directory.
 
 AWS_STAGE_HOST="https://symbolication.stage.mozaws.net"
 AWS_PROD_HOST="https://symbolication.services.mozilla.com"
@@ -34,6 +34,8 @@ else
 fi
 
 LOCUST_FLAGS="--headless"
+
+mkdir logs || true
 
 # Runname includes environment and any second argument
 DATE="$(date +'%Y%m%d-%H0000')"

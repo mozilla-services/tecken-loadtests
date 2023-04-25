@@ -4,9 +4,9 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-# Usage: ./locust_eliot.sh ENV [RUNNAME]
+# Usage: ./loadtest_normal.sh ENV [RUNNAME]
 #
-# Run it in the Docker container.
+# Run it in the Docker container in the locust-eliot/ directory.
 
 AWS_STAGE_HOST="https://symbolication.stage.mozaws.net"
 AWS_PROD_HOST="https://symbolication.services.mozilla.com"
@@ -35,52 +35,18 @@ fi
 
 LOCUST_FLAGS="--headless"
 
+mkdir logs || true
+
 # Runname includes environment and any second argument
 DATE="$(date +'%Y%m%d-%H0000')"
 
 echo ">>> Host:    ${HOST}"
 read -p "Ready to start? " nextvar
 
-# prime
+# normal load
 USERS="3"
-RUNTIME="5m"
-RUNNAME="${DATE}-$1$2-prime"
-
-echo "$(date): Locust start ${RUNNAME}...."
-locust -f locust-eliot/testfile.py \
-    --host="${HOST}" \
-    --users="${USERS}" \
-    --run-time="${RUNTIME}" \
-    --csv="logs/${RUNNAME}" \
-    ${LOCUST_FLAGS}
-echo "$(date): Locust end ${RUNNAME}."
-
-echo "${RUNNAME} users=${USERS} runtime=${RUNTIME}"
-python bin/print_locust_stats.py logs/${RUNNAME}
-read -p "Next? " nextvar
-
-# normal
-USERS="3"
-RUNTIME="10m"
+RUNTIME="30m"
 RUNNAME="${DATE}-$1$2-normal"
-
-echo "$(date): Locust start ${RUNNAME}...."
-locust -f locust-eliot/testfile.py \
-    --host="${HOST}" \
-    --users="${USERS}" \
-    --run-time="${RUNTIME}" \
-    --csv="logs/${RUNNAME}" \
-    ${LOCUST_FLAGS}
-echo "$(date): Locust end ${RUNNAME}."
-
-echo "${RUNNAME} users=${USERS} runtime=${RUNTIME}"
-python bin/print_locust_stats.py logs/${RUNNAME}
-read -p "Next? " nextvar
-
-# high
-USERS="5"
-RUNTIME="10m"
-RUNNAME="${DATE}-$1$2-high"
 
 echo "$(date): Locust start ${RUNNAME}...."
 locust -f locust-eliot/testfile.py \

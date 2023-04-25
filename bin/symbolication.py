@@ -12,7 +12,6 @@ import json
 import os
 import random
 import statistics
-import tempfile
 import time
 from urllib.parse import urlparse
 
@@ -32,34 +31,45 @@ EMPTY_DEBUG = {
         "stacks_per_module": 0,
         "count": 0,
     },
+    "cache_lookups": {
+        "count": 0,
+        "hits": 0,
+        "time": 0,
+    },
     "downloads": {
         "count": 0,
         "time": 0,
         "size": 0,
+        "size_per_module": {},
+        "time_per_module": {},
+        "fail_time_per_module": {},
     },
-    "cache_lookups": {
-        "count": 0,
+    "parse_sym": {
         "time": 0,
+        "time_per_module": {},
+        "fail_time_per_module": {},
+    },
+    "save_symcache": {
+        "time": 0,
+        "time_per_module": {},
     },
 }
 
 
-def sizeof_fmt(num, suffix="B"):
-    for unit in ["", "K", "M", "G", "T", "P", "E", "Z"]:
+def sizeof_fmt(num, suffix="b"):
+    for unit in ["", "k", "m", "g", "t", "p", "e", "z"]:
         if abs(num) < 1024.0:
-            return "%3.1f%s%s" % (num, unit, suffix)
+            return f"{num:,.2f} {unit}{suffix}"
         num /= 1024.0
-    return "%.1f%s%s" % (num, "Yi", suffix)
+    return f"{num:,.2f} Yi{suffix}"
 
 
-def number_fmt(x):
-    if isinstance(x, int):
-        return str(x)
-    return "{:.2f}".format(x)
+def time_fmt(num):
+    return f"{num:,.3f} s"
 
 
-def time_fmt(x):
-    return "{:.3f}s".format(x)
+def number_fmt(num):
+    return f"{num:,.3f}"
 
 
 def listify(d):
@@ -79,7 +89,14 @@ def appendify(source, dest):
 
 
 def _stats(r):
-    """Return avg, 50%, and stddev of a sequence"""
+    """Takes out 0s and then returns avg, 50%, and stddev of a sequence"""
+    r = [item for item in r if item]
+    if len(r) == 0:
+        return 0.0, 0.0, 0.0
+
+    if len(r) == 1:
+        return r[0], r[0], 0.0
+
     r = list(sorted(r))
     return (
         statistics.mean(r),
@@ -89,10 +106,11 @@ def _stats(r):
 
 
 def post_patiently(console, url, **kwargs):
+    """Return delta, data for successful post"""
     attempts = kwargs.pop("attempts", 0)
     payload = kwargs["json"]
     try:
-        t0 = time.time()
+        start_time = time.time()
         options = {
             "headers": {"Debug": "true"},
             "timeout": TIMEOUT,
@@ -103,9 +121,9 @@ def post_patiently(console, url, **kwargs):
             console.print(f"Got HTTP {resp.status_code}")
             console.print(f"CONTENT: {resp.content}")
             raise ConnectionError()
-        data = resp.json()
-        t1 = time.time()
-        return (t1, t0), data
+
+        return time.time() - start_time, resp.json()
+
     except ConnectionError:
         if attempts > 3:
             raise
@@ -142,9 +160,7 @@ def run(input_dir, url, limit=None, batch_size=1):
     if not urlparse(url).path.endswith("/v5"):
         raise click.BadParameter("symbolication.py only supports v5")
 
-    all_debugs = []
-
-    times = []
+    data = []
 
     files = [os.path.join(input_dir, x) for x in os.listdir(input_dir)]
     console.print(f"Got {len(files)} files")
@@ -152,19 +168,22 @@ def run(input_dir, url, limit=None, batch_size=1):
 
     if limit is not None:
         console.print(f"Limiting to {limit * batch_size} files")
-        files = files[:limit * batch_size]
+        files = files[: limit * batch_size]
 
     now = datetime.datetime.now().strftime("%Y%m%d")
-    logfile_path = os.path.join(tempfile.gettempdir(), "symbolication-" + now + ".log")
+    logfile_path = f"symbolication-{now}.log"
     console.print(f"All verbose logging goes into: {logfile_path}")
     console.print()
 
-    with open(logfile_path, "a") as logfile:
+    with open(logfile_path, "w") as logfile:
         try:
             bundle = []
             progress = Progress(expand=True, transient=True)
             with progress:
-                for filename in progress.track(files, description="Processing ...", ):
+                for filename in progress.track(
+                    files,
+                    description="Processing ...",
+                ):
                     with open(filename) as f:
                         payload = json.loads(f.read())
                         payload.pop("version", None)
@@ -176,75 +195,95 @@ def run(input_dir, url, limit=None, batch_size=1):
                             bundle = []
 
                     print(f"FILE: {filename}", file=logfile)
-                    print("PAYLOAD (as JSON)", file=logfile)
-                    print("-" * 79, file=logfile)
-                    print(json.dumps(payload), file=logfile)
+                    print(f"PAYLOAD: {json.dumps(payload)}", file=logfile)
 
-                    (t1, t0), r = post_patiently(progress.console, url, json=payload)
+                    delta, resp = post_patiently(progress.console, url, json=payload)
 
-                    print(file=logfile)
-                    print("RESPONSE (as JSON)", file=logfile)
-                    print("-" * 79, file=logfile)
-                    print(json.dumps(r), file=logfile)
-                    print("-" * 79, file=logfile)
+                    print(f"RESPONSE: {json.dumps(resp)}", file=logfile)
 
-                    times.append(t0)
-                    debug_downloads_counts = []
-                    debug_downloads_times = []
-                    debug_downloads_sizes = []
-                    cache_lookups_counts = []
-                    cache_lookups_times = []
-                    modules_counts = []
-                    downloads_counts = []
-
-                    debug = r.get("debug", copy.deepcopy(EMPTY_DEBUG))
-                    if "stacks_per_module" in debug["modules"]:
-                        debug["modules"].pop("stacks_per_module")
-                    debug_downloads_counts.append(debug["downloads"]["count"])
-                    debug_downloads_times.append(debug["downloads"]["time"])
-                    debug_downloads_sizes.append(debug["downloads"]["size"])
-                    cache_lookups_counts.append(debug["cache_lookups"]["count"])
-                    cache_lookups_times.append(debug["cache_lookups"]["time"])
-                    modules_counts.append(debug["modules"]["count"])
-                    downloads_counts.append(debug["downloads"]["count"])
-                    all_debugs.append(debug)
-
-                    if sum(debug_downloads_counts):
-                        _downloads = "{} downloads ({}, {})".format(
-                            sum(debug_downloads_counts),
-                            time_fmt(sum(debug_downloads_times)),
-                            sizeof_fmt(sum(debug_downloads_sizes)),
+                    debug = resp.get("debug", copy.deepcopy(EMPTY_DEBUG))
+                    # progress.console.print(debug)
+                    for module in (
+                        debug.get("downloads", {}).get("size_per_module", {}).keys()
+                    ):
+                        module_size = debug["downloads"]["size_per_module"][module]
+                        module_time = debug["downloads"]["time_per_module"][module]
+                        speed = module_size / module_time / (1024 * 1024)
+                        progress.print(
+                            module,
+                            f"{module_size:,}",
+                            f"{module_time:,.2f} s",
+                            f"{speed:,.2f} mb/s",
                         )
-                    else:
-                        _downloads = "no download data"
 
-                    if sum(cache_lookups_counts):
-                        _cache_lookups = "{} ({}) cache lookup{} ({} -- {}/lookup)".format(
-                            sum(cache_lookups_counts),
-                            (sum(modules_counts) - sum(downloads_counts)),
-                            sum(cache_lookups_counts) > 1 and "s" or "",
-                            time_fmt(sum(cache_lookups_times)),
-                            time_fmt(sum(cache_lookups_times) / sum(cache_lookups_counts)),
+                    data_item = {
+                        "time": delta,
+                        "cache": {
+                            "count": debug.get("cache_lookups", {}).get("count", 0),
+                            "hits": debug.get("cache_lookups", {}).get("hits", 0),
+                            "time": debug.get("cache_lookups", {}).get("time", 0.0),
+                        },
+                        "downloads": {
+                            "count": debug.get("downloads", {}).get("count", 0),
+                            # FIXME( the "time" and "size" fields are wrong in
+                            # the debug output, so we sum them manually
+                            "time": sum(
+                                debug.get("downloads", {})
+                                .get("time_per_module", {})
+                                .values()
+                                or [0]
+                            ),
+                            "size": sum(
+                                debug.get("downloads", {})
+                                .get("size_per_module", {})
+                                .values()
+                                or [0]
+                            ),
+                        },
+                    }
+                    data.append(data_item)
+
+                    cache_data = data_item["cache"]
+                    if cache_data["count"]:
+                        _cache_lookups = (
+                            f"{cache_data['count']} cache lookups "
+                            + f"({cache_data['hits']}/{cache_data['count']}  {cache_data['time']:,.2f} s)"
                         )
                     else:
                         _cache_lookups = "no cache data"
 
-                    progress.console.print(f"{_downloads.ljust(35)}{_cache_lookups}")
+                    download_data = data_item["downloads"]
+                    if download_data["count"]:
+                        _downloads = (
+                            f"{download_data['count']} downloads "
+                            + f"({download_data['size']:,} b  {download_data['time']:,.2f} s)"
+                        )
+                    else:
+                        _downloads = "no download data"
+
+                    # progress.console.print(debug)
+                    delta_time = time_fmt(delta)
+
+                    progress.console.print(
+                        f"{_cache_lookups:<40}{_downloads:<40}{delta_time}"
+                    )
 
         except KeyboardInterrupt:
             console.print("Keyboard interrupt...")
 
     # Display summary data and conclusion
     console.print("\n")
-    if len(all_debugs) == (len(files) * batch_size):
-        console.print(f"TOTAL {len(all_debugs)} JOBS DONE")
+    if len(data) == (len(files) * batch_size):
+        console.print(f"TOTAL {len(data)} JOBS DONE")
     else:
-        console.print(f"TOTAL SO FAR {len(all_debugs)} JOBS DONE")
+        console.print(f"TOTAL SO FAR {len(data)} JOBS DONE")
 
-    one = copy.deepcopy(all_debugs[0])
+    one = copy.deepcopy(data[0])
     listify(one)
-    for debug in all_debugs:
-        appendify(debug, one)
+    for item in data[1:]:
+        appendify(item, one)
+
+    # console.print(one)
 
     table = Table()
     table.add_column("Key", justify="left")
@@ -258,40 +297,46 @@ def run(input_dir, url, limit=None, batch_size=1):
             value = objects.get(key, None)
             if isinstance(value, dict):
                 printify(value, p=p, n=n, prefix=prefix + key + ".")
-                return
-
-            value = value or 0.0
-            average, median, stddev = _stats(value)
-            if key.endswith("time"):
-                table.add_row(
-                    prefix + key,
-                    f"{sum(value):.2f}s",
-                    f"{average:.2f}s",
-                    f"{median:.2f}s",
-                    f"{stddev:.2f}",
-                )
-
             else:
-                table.add_row(
-                    prefix + key,
-                    f"{sum(value):.2f}",
-                )
+                value = value or 0.0
+                average, median, stddev = _stats(value)
+                if key.endswith("time"):
+                    table.add_row(
+                        prefix + key,
+                        time_fmt(sum(value)),
+                        time_fmt(average),
+                        time_fmt(median),
+                        number_fmt(stddev),
+                    )
+
+                elif key.endswith("size"):
+                    table.add_row(
+                        prefix + key,
+                        sizeof_fmt(sum(value)),
+                        sizeof_fmt(average),
+                        sizeof_fmt(median),
+                        number_fmt(stddev),
+                    )
+
+                else:
+                    table.add_row(
+                        prefix + key,
+                        number_fmt(sum(value)),
+                    )
 
     printify(one)
 
     console.print(table)
 
     console.print("\n")
-    console.print("IN CONCLUSION...")
+    console.print("In conclusion...")
     if one["downloads"]["count"] and sum(one["downloads"]["time"]):
         downloads_speed = sizeof_fmt(
             sum(one["downloads"]["size"]) / sum(one["downloads"]["time"])
         )
         console.print(f"Final Average Download Speed:    {downloads_speed}/s")
     total_time_everything_else = (
-        sum(one["time"])
-        - sum(one["downloads"]["time"])
-        - sum(one["cache_lookups"]["time"])
+        sum(one["time"]) - sum(one["downloads"]["time"]) - sum(one["cache"]["time"])
     )
     console.print(
         "Total time NOT downloading or querying cache:    "

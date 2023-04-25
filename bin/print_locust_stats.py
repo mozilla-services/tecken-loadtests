@@ -60,7 +60,15 @@ def print_cmd(ctx, runname):
 
     table = Table(box=box.ASCII, show_edge=False, safe_box=True, show_header=True)
 
-    headers = ["Name", "Request Count", "Failure Count", "Requests/s", "Average Response Time", "50%", "95%"]
+    headers = [
+        "Name",
+        "Request Count",
+        "Failure Count",
+        "Requests/s",
+        "Average Response Time",
+        "50%",
+        "95%",
+    ]
     table.add_column("Name", justify="left")
     table.add_column("Requests", justify="left")
     table.add_column("Failures", justify="left")

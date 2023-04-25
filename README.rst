@@ -132,33 +132,14 @@ Here's the same output but annotated with comments:
 Load testing with Locust
 ------------------------
 
-To test with Locust, use the ``locust_eliot.sh`` script.
+To test with Locust, use the scripts in ``locust-eliot`` directory. See that
+README.rst for details.
 
 For example::
 
    $ make shell
-   app@...:/app$ locust_eliot.sh aws-stage
-
-In the script are various things you can adjust like number of users and
-duration.
-
-It runs three rounds:
-
-1. priming
-
-   Eliot with a cold cache handles very differently than with a hot cache. We
-   want to load test Eliot with a hot cache, so we prime the environment to get
-   it to a hot cache.
-
-2. normal load
-
-   This runs a light load test to make sure Eliot is functioning and not
-   falling over.
-
-3. high load
-
-   This runs a higher load test to make sure Eliot scales up appropriately
-   without falling over.
+   app@...:/app$ cd locust-eliot
+   app@...:/app/locust-eliot$ locust_eliot.sh aws-stage
 
 
 Testing Tecken

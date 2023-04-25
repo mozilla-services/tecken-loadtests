@@ -239,8 +239,20 @@ def compare_symbolication(ctx, url1, url2, stackfile):
     click.echo(click.style(f"Time: {t:,.3}s", fg="yellow"))
     ct = float(url1_debug.get("cache_lookups", {}).get("time", 0))
     click.echo(click.style(f"Cache lookup time: {ct:,.3}s", fg="yellow"))
-    dt = float(sum(val for val in url1_debug.get("downloads", {}).get("time_per_module", {}).values()))
+    dt = float(
+        sum(
+            val
+            for val in url1_debug.get("downloads", {})
+            .get("time_per_module", {})
+            .values()
+        )
+    )
     click.echo(click.style(f"Download time: {dt:,.3}s", fg="yellow"))
+    for module, timing in (
+        url1_debug.get("downloads", {}).get("time_per_module", {}).items()
+    ):
+        module_size = url1_debug["downloads"]["size_per_module"][module]
+        click.echo(f"   {module}  {module_size:,}b  {timing:,.3f}s")
 
     # Download from url2
     click.echo(click.style(f"Downloading from {url2} ...", fg="yellow"))
@@ -266,9 +278,22 @@ def compare_symbolication(ctx, url1, url2, stackfile):
     click.echo(click.style(f"Time: {t:,.3}s", fg="yellow"))
     ct = float(url2_debug.get("cache_lookups", {}).get("time", 0))
     click.echo(click.style(f"Cache lookup time: {ct:,.3}s", fg="yellow"))
-    dt = float(sum(val for val in url2_debug.get("downloads", {}).get("time_per_module", {}).values()))
+    dt = float(
+        sum(
+            val
+            for val in url2_debug.get("downloads", {})
+            .get("time_per_module", {})
+            .values()
+        )
+    )
     click.echo(click.style(f"Download time: {dt:,.3}s", fg="yellow"))
+    for module, timing in (
+        url2_debug.get("downloads", {}).get("time_per_module", {}).items()
+    ):
+        module_size = url2_debug["downloads"]["size_per_module"][module]
+        click.echo(f"   {module}  {module_size:,}b  {timing:,.3f}s")
 
+    # Compare url1 and url2 responses
     if url1_resp == url2_resp:
         click.echo(click.style("url1 resp == url2 resp", fg="green"))
     else:
