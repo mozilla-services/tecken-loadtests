@@ -29,9 +29,9 @@ Testing Symbolication API
 -------------------------
 
 1. Run::
-   
+
        $ make shell
-       app@...:/app$ python bin/symbolicate.py stacks HOST
+       app@...:/app$ python bin/symbolication.py stacks https://HOST/
 
    to run it against HOST.
 
