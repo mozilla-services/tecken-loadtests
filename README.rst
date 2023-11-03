@@ -43,84 +43,71 @@ The results look like this:
 
 ::
 
-   TOTAL SO FAR 369 JOBS DONE
-   KEY                            SUM        AVG     MEDIAN    STD-DEV
-   cache_lookups.count           1083          2          3       1.73
-   cache_lookups.size           1.8GB      5.0MB       0.0B      8.7MB
-   cache_lookups.time          8.505s     0.023s     0.001s     0.038s
-   downloads.count                941          2          2       1.73
-   downloads.size              23.9GB     66.3MB     76.5MB     40.4MB
-   downloads.time           3179.728s     8.594s    10.257s     4.432s
-   loader_time              3350.723s     9.056s    10.758s      4.484s
-   modules.count                 1083          2          3       1.73
-   stacks.count                  8497         22         25       5.00
-   stacks.real                   8334         22         25       5.39
-   time                     3351.656s     9.059s    10.725s      4.443s
+    TOTAL 729 JOBS DONE
+     Key             |         Sum |       Avg |       50% |          StdDev
+    -----------------|-------------|-----------|-----------|-----------------
+     cache.count     |   3,503.000 |           |           |
+     cache.hits      |   2,598.000 |           |           |
+     cache.time      |   671.088 s |   0.922 s |   0.471 s |           0.845
+     downloads.count |     905.000 |           |           |
+     downloads.size  |   103.19 gb | 331.24 mb | 519.14 mb | 316,107,251.274
+     downloads.time  |   937.658 s |   2.939 s |   3.673 s |           2.352
+     time            | 5,727.419 s |   7.857 s |   2.173 s |          11.289
 
 
-   IN CONCLUSION...
-   Final Download Speed    7.7MB/s
-   Final Cache Speed       219.0MB/s
+    In conclusion...
+    Final Average Download Speed:    112.69 mb/s
+    Total time NOT downloading or querying cache:    4,118.673 s
+    Average time NOT downloading or querying cache:  5.650 s
+
 
 Here's the same output but annotated with comments:
 
 ::
 
-   TOTAL SO FAR 369 JOBS DONE
-   KEY                            SUM        AVG     MEDIAN    STD-DEV
+    TOTAL 729 JOBS DONE
+     Key             |         Sum |       Avg |       50% |          StdDev
+    -----------------|-------------|-----------|-----------|-----------------
 
-   # How many times we've tried to look up a module in the LRU cache.
-   cache_lookups.count           1083          2          3       1.73
+    # How many times we've tried to look up a module in the LRU cache.
+     cache.count     |   3,503.000 |           |           |
 
-   # How much data we have successfully extracted out of the LRU cache.
-   cache_lookups.size           1.8GB      5.0MB       0.0B      8.7MB
+    # How many times it was a cache hit.
+     cache.hits      |   2,598.000 |           |           |
 
-   # The time spent doing lookups on the LRU cache (hits or misses).
-   cache_lookups.time          8.505s     0.023s     0.001s     0.038s
+    # The time spent doing lookups on the LRU cache.
+     cache.time      |   671.088 s |   0.922 s |   0.471 s |           0.845
 
-   # How many distinct URLs that have had to be downloaded.
-   downloads.count                941          2          2       1.73
+    # How many distinct URLs that have had to be downloaded.
+     downloads.count |     905.000 |           |           |
 
-   # The amount of data that has been downloaded from URLs (uncompressed).
-   downloads.size              23.9GB     66.3MB     76.5MB     40.4MB
+    # The amount of data that has been downloaded from URLs (uncompressed).
+     downloads.size  |   103.19 gb | 331.24 mb | 519.14 mb | 316,107,251.274
 
-   # The time spent doing URL downloads.
-   downloads.time           3179.728s     8.594s    10.257s     4.432s
+    # The time spent doing URL downloads.
+     downloads.time  |   937.658 s |   2.939 s |   3.673 s |           2.352
 
-   # A special one. This wraps the 'downloads.time' plus the time it
-   # takes to make the and getting the response. Should be marginally
-   # bigger than than 'downloads.time'
-   loader_time              3350.723s     9.056s    10.758s      4.484s
-
-   # Distinct number of modules that have been come across. Note
-   # that this number is the same as 'cache_lookups.count' above.
-   modules.count                 1083          2          3       1.73
-
-   # Total number of individual stacks symbolicated.
-   stacks.count                  8497         22         25       5.00
-
-   # Same as 'stacks.count' except sometimes the module index is -1 so we
-   # know we don't have to symbolicate it and can just insert its hex offset
-   # directly.
-   stacks.real                   8334         22         25       5.39
-
-   # Total time spent symbolicating all stacks. This spans cache misses and
-   # cache hits.
-   time                     3351.656s     9.059s    10.725s      4.443s
+    # Total time spent on symbolication
+     time            | 5,727.419 s |   7.857 s |   2.173 s |          11.289
 
 
-   IN CONCLUSION...
+    In conclusion...
 
-   # The download speed doing downloads. But note! this is UNcompressed so it's
-   # likely to be much higher (how much? roughly the average gzip size of a
-   # symbol text file) than what you get for your broadband when you open
-   # http://fast.com.
-   Final Download Speed    7.7MB/s
+    # The download speed doing downloads. But note! this is UNcompressed so it's
+    # likely to be much higher (how much? roughly the average gzip size of a
+    # symbol text file) than what you get for your broadband when you open
+    # http://fast.com.
+    Final Average Download Speed:    112.69 mb/s
 
-   # The speed at which the web service can extract data out of the LRU cache.
-   # This is a really important number if you want to optimize how the LRU
-   # data pipelining works.
-   Final Cache Speed       219.0MB/s
+    # This is the total time spent doing neither downloading nor querying the
+    # cache. So this is roughly the time it takes to parse symbols files and
+    # perform the symbolication.
+    Total time NOT downloading or querying cache:    4,118.673 s
+
+    # This is the total time spent doing neither downloading nor querying
+    # divided by number of requests.
+    Average time NOT downloading or querying cache:  5.650 s
+
 
 .. Note::
 

@@ -18,6 +18,7 @@ from urllib.parse import urlparse
 import click
 import requests
 from requests.exceptions import ConnectionError
+from rich import box
 from rich.console import Console
 from rich.progress import Progress
 from rich.table import Table
@@ -285,7 +286,7 @@ def run(input_dir, url, limit=None, batch_size=1):
 
     # console.print(one)
 
-    table = Table()
+    table = Table(show_edge=False, box=box.MARKDOWN)
     table.add_column("Key", justify="left")
     table.add_column("Sum", justify="right")
     table.add_column("Avg", justify="right")
