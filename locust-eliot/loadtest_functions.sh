@@ -7,8 +7,10 @@ eliot_base_url() {
         aws-prod)   echo "https://symbolication.services.mozilla.com";;
         gcp-stage)  echo "https://stage.eliot.nonprod.dataservices.mozgcp.net";;
         gcp-prod)   echo "https://prod.eliot.prod.dataservices.mozgcp.net";;
+        gcp2-stage) echo "https://eliot-stage.symbols.nonprod.webservices.mozgcp.net";;
+        gcp2-prod)  echo "https://eliot-prod.symbols.prod.webservices.mozgcp.net";;
         *)
-            echo >&2 "Unknown environment. Use 'aws-stage', 'aws-prod', 'gcp-stage' or 'gcp-prod'."
+            echo >&2 "Unknown environment. Use 'aws-stage', 'aws-prod', 'gcp-stage', 'gcp-prod', 'gcp2-stage' or 'gcp2-prod'."
             echo >&2 "Exiting."
             exit 1
     esac

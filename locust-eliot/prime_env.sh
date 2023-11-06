@@ -5,6 +5,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 # Usage: ./prime_env.sh ENV [RUNNAME]
+# Run inside the Docker container.
 
 cd "$(dirname -- "$0")"
 . loadtest_functions.sh
