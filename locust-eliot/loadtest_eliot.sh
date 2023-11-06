@@ -5,75 +5,17 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 # Usage: ./loadtest_eliot.sh ENV [RUNNAME]
-#
-# Run it in the Docker container in the locust-eliot/ directory.
 
-AWS_STAGE_HOST="https://symbolication.stage.mozaws.net"
-AWS_PROD_HOST="https://symbolication.services.mozilla.com"
+cd "$(dirname -- "$0")"
+. loadtest_functions.sh
 
-GCP_STAGE_HOST="https://stage.eliot.nonprod.dataservices.mozgcp.net"
-GCP_PROD_HOST="https://prod.eliot.prod.dataservices.mozgcp.net"
-
-
-if [[ "$1" == "aws-stage" ]]; then
-    export HOST=${AWS_STAGE_HOST}
-
-elif [[ "$1" == "aws-prod" ]]; then
-    export HOST=${AWS_PROD_HOST}
-
-elif [[ "$1" == "gcp-stage" ]]; then
-    export HOST=${GCP_STAGE_HOST}
-
-elif [[ "$1" == "gcp-prod" ]]; then
-    export HOST=${GCP_PROD_HOST}
-
-else
-    echo "Unknown environment. Use 'aws-stage', 'aws-prod', 'gcp-stage', or 'gcp-prod'."
-    echo "Exiting."
-    exit 1
-fi
-
-LOCUST_FLAGS="--headless"
-
-mkdir logs || true
-
-# Runname includes environment and any second argument
-DATE="$(date +'%Y%m%d-%H0000')"
-
-echo ">>> Host:    ${HOST}"
-read -p "Ready to start? " nextvar
-
-# prime
+HOST="$(eliot_base_url "$1")"
 USERS="3"
 RUNTIME="5m"
-RUNNAME="${DATE}-$1$2-prime"
+RUNNAME_SUFFIX="$1$2-prime"
+run_loadtest
 
-echo "$(date): Locust start ${RUNNAME}...."
-locust -f locust-eliot/testfile.py \
-    --host="${HOST}" \
-    --users="${USERS}" \
-    --run-time="${RUNTIME}" \
-    --csv="logs/${RUNNAME}" \
-    ${LOCUST_FLAGS}
-echo "$(date): Locust end ${RUNNAME}."
-
-echo "${RUNNAME} users=${USERS} runtime=${RUNTIME}"
-python bin/print_locust_stats.py logs/${RUNNAME}
-read -p "Next? " nextvar
-
-# high
 USERS="5"
 RUNTIME="10m"
-RUNNAME="${DATE}-$1$2-high"
-
-echo "$(date): Locust start ${RUNNAME}...."
-locust -f locust-eliot/testfile.py \
-    --host="${HOST}" \
-    --users="${USERS}" \
-    --run-time="${RUNTIME}" \
-    --csv="logs/${RUNNAME}" \
-    ${LOCUST_FLAGS}
-echo "$(date): Locust end ${RUNNAME}."
-
-echo "${RUNNAME} users=${USERS} runtime=${RUNTIME}"
-python bin/print_locust_stats.py logs/${RUNNAME}
+RUNNAME_SUFFIX="$1$2-high"
+run_loadtest
