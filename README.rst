@@ -2,7 +2,8 @@
 Tecken loadtests
 ================
 
-Set of tools for load testing Tecken Symbols Service and Symbolication Service.
+Set of tools for load testing Mozilla Symbols Service and Mozilla Symbolication
+Service.
 
 
 Setup

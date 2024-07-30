@@ -48,9 +48,9 @@ build:  ## | Build Docker image for testing with
 lint:  ## | Lint code in this repo
 	${DC} run base /bin/bash -c "bin/run_lint.sh"
 
-.PHONY: lintfix
-lintfix:  ## | Lint code in this repo
-	${DC} run base /bin/bash -c "bin/run_lint.sh --check"
+.PHONY: format
+format:  ## | Format code in this repo
+	${DC} run base /bin/bash -c "bin/run_lint.sh --format"
 
 .PHONY: clean
 clean:  ## | Delete artifacts
@@ -61,33 +61,3 @@ clean:  ## | Delete artifacts
 .PHONY: shell
 shell: .docker-build  ## | Create a shell in the Docker image
 	${DC} run base /bin/bash
-
-.PHONY: buildstacks
-buildstacks: .docker-build  ## | Build stacks for testing symbolication
-	-mkdir $(STACKSDIR)
-	${DC} run base /bin/bash -c "bin/fetch-crashids.py --num-results=1000 | bin/make-stacks.py save $(STACKSDIR)"
-	@echo "`ls $(STACKSDIR)/*.json | wc -l` stacks total."
-
-.PHONY: symbolicate-locally
-symbolicate-locally:  ## | Run symbolication against localhost
-	python symbolication.py stacks http://localhost:8050
-
-.PHONY: symbolicate-stage
-symbolicate-stage:  ## | Run symbolication against stage
-	python symbolication.py stacks https://symbols.stage.mozaws.net
-
-.PHONY: download-locally
-download-locally:  ## | Run download test against localhost
-	python download.py http://localhost:8000 downloading/symbol-queries-groups.csv downloading/socorro-missing.csv
-
-.PHONY: download-stage
-download-stage:  ## | Run download test against stage
-	python download.py https://symbols.stage.mozaws.net downloading/symbol-queries-groups.csv downloading/socorro-missing.csv
-
-.PHONY: download-prod
-download-prod:  ## | Run download test against prod
-	python download.py https://symbols.mozilla.org downloading/symbol-queries-groups.csv downloading/socorro-missing.csv
-
-.PHONY: make-symbol-zip
-make-symbol-zip:  ## | Make a symbols.zip file for uploading tests
-	python make-symbol-zip.py

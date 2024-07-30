@@ -55,7 +55,10 @@ def print_cmd(ctx, runname):
     all_data = []
     for line in lines:
         all_data.append(
-            {key: parse_val(val) for key, val in zip(columns, line.strip().split(","))}
+            {
+                key: parse_val(val)
+                for key, val in zip(columns, line.strip().split(","), strict=True)
+            }
         )
 
     table = Table(box=box.ASCII, show_edge=False, safe_box=True, show_header=True)
