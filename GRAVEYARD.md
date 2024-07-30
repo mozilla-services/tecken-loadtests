@@ -4,7 +4,7 @@ This is a file that links to interesting things in this repo in the past.
 
 ## Molotov support and misc testing stuff
 
-* Removal PR
+* [Removal PR](https://github.com/mozilla-services/tecken-loadtests/pull/32)
 
 A long time ago, we used [molotov](https://pypi.org/project/molotov/). We have
 since switched to [locust](https://pypi.org/project/locust/).
